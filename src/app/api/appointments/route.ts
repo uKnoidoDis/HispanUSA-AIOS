@@ -176,6 +176,7 @@ export async function POST(request: NextRequest) {
   );
 
   // Step 5: Send messages (fire-and-forget style — appointment was created regardless)
+  console.log('[APPOINTMENT] Route hit — appointment created:', appointment.id, '| client phone:', client.phone, '| client email:', client.email);
   let messageResults;
   try {
     messageResults = await buildAndSendMessages(appointment, client, checklistTypes, 'immediate', supabase);

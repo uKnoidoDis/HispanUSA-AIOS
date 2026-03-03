@@ -92,8 +92,10 @@ export async function buildAndSendMessages(
   let emailResult: MessageResult | null = null;
 
   // Send SMS if client has a phone number
+  console.log('[MESSAGE-BUILDER] client.phone value:', JSON.stringify(client.phone));
   if (client.phone) {
     const normalizedPhone = normalizePhone(client.phone);
+    console.log('[MESSAGE-BUILDER] About to send SMS to:', normalizedPhone);
     try {
       const { sid } = await sendSMS(normalizedPhone, smsBody);
       smsResult = { success: true, channel: 'sms', recipient: normalizedPhone, providerId: sid };
