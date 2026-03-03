@@ -13,11 +13,19 @@ function getClient() {
   return client;
 }
 
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits[0] === '1') return `+${digits}`;
+  return phone.startsWith('+') ? phone : `+${digits}`;
+}
+
 export async function sendSMS(to: string, body: string): Promise<{ sid: string }> {
   const twilioClient = getClient();
-  const from = process.env.TWILIO_PHONE_NUMBER;
-  if (!from) throw new Error('Missing TWILIO_PHONE_NUMBER');
+  const rawFrom = process.env.TWILIO_PHONE_NUMBER;
+  if (!rawFrom) throw new Error('Missing TWILIO_PHONE_NUMBER');
 
+  const from = toE164(rawFrom);
   const message = await twilioClient.messages.create({ body, from, to });
   return { sid: message.sid };
 }

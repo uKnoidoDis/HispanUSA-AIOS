@@ -18,14 +18,14 @@ type TriggerKey = 'immediate' | '7_day' | '3_day' | '1_day' | 'manual_resend';
 
 async function loadSmsTemplate(lang: 'en' | 'es', trigger: TriggerKey): Promise<SmsTemplate> {
   const effectiveTrigger = trigger === 'manual_resend' ? 'immediate' : trigger;
-  const fileKey = effectiveTrigger.replace('_', '');
+  const fileKey = effectiveTrigger.replace(/_/g, '');
   const mod = await import(`@/content/message-templates/${lang}/sms-${fileKey}`);
   return mod.default as SmsTemplate;
 }
 
 async function loadEmailTemplate(lang: 'en' | 'es', trigger: TriggerKey): Promise<EmailTemplate> {
   const effectiveTrigger = trigger === 'manual_resend' ? 'immediate' : trigger;
-  const fileKey = effectiveTrigger.replace('_', '');
+  const fileKey = effectiveTrigger.replace(/_/g, '');
   const mod = await import(`@/content/message-templates/${lang}/email-${fileKey}`);
   return mod.default as EmailTemplate;
 }
