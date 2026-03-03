@@ -26,6 +26,24 @@ export async function sendSMS(to: string, body: string): Promise<{ sid: string }
   if (!rawFrom) throw new Error('Missing TWILIO_PHONE_NUMBER');
 
   const from = toE164(rawFrom);
-  const message = await twilioClient.messages.create({ body, from, to });
-  return { sid: message.sid };
+  const toNormalized = toE164(to);
+
+  console.log(`[Twilio] Sending SMS — from: ${from}, to: ${toNormalized}`);
+
+  try {
+    const message = await twilioClient.messages.create({ body, from, to: toNormalized });
+    console.log(`[Twilio] SMS sent — SID: ${message.sid}`);
+    return { sid: message.sid };
+  } catch (err: unknown) {
+    const e = err as { code?: number; message?: string; moreInfo?: string; status?: number };
+    console.error('[Twilio] SMS send failed:', {
+      code: e.code,
+      message: e.message,
+      moreInfo: e.moreInfo,
+      status: e.status,
+      to: toNormalized,
+      from,
+    });
+    throw err;
+  }
 }
