@@ -3,42 +3,68 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/dashboard/Header';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
-import { formatDate, formatTime } from '@/lib/utils';
-import type { AppointmentDetail, DocStatus } from '@/types';
+import { formatTime } from '@/lib/utils';
+import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
 
-const DOC_STATUS_SEQUENCE: DocStatus[] = [
-  'not_sent',
-  'checklist_sent',
-  'confirmed',
-  'folder_opened',
-  'docs_received',
-];
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
-const statusLabels: Record<DocStatus, string> = {
-  not_sent: 'Not Sent',
-  checklist_sent: 'Checklist Sent',
-  confirmed: 'Appt Confirmed',
-  folder_opened: 'Folder Opened',
-  docs_received: 'Docs Received',
+interface MessageRow {
+  id: string;
+  channel: 'sms' | 'email';
+  message_type: string;
+  status: 'sent' | 'failed' | 'pending';
+  error_message: string | null;
+  sent_at: string;
+}
+
+interface AppointmentDetail extends Appointment {
+  preparer: Pick<Preparer, 'id' | 'name' | 'color_hex' | 'color_name'>;
+  messages: MessageRow[];
+}
+
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const TYPE_LABELS: Record<string, string> = {
+  personal_tax:          'Taxes — Personal',
+  corporate_tax:         'Taxes — Corporate',
+  professional_services: 'Professional Services',
 };
 
-const checklistLabels: Record<string, string> = {
-  checklist_1: 'Personal Tax (No Dependents)',
-  checklist_2: 'Dependent Documents',
-  checklist_3: 'New Client Intake Form',
-  checklist_4: 'Corporate & Accounting Docs',
+const SUBTYPE_LABELS: Record<string, string> = {
+  divorce:                'Divorce',
+  immigration_consulting: 'Immigration Consulting',
+  general_consulting:     'General Consulting',
+  bankruptcy:             'Bankruptcy',
+  offer_in_compromise:    'Offer in Compromise',
+  other:                  'Other',
 };
 
-const triggerLabels: Record<string, string> = {
-  immediate: 'Booking Confirmation',
-  '7_day': '7-Day Reminder',
-  '3_day': '3-Day Reminder',
-  '1_day': '1-Day Reminder',
-  manual_resend: 'Manual Resend',
+const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: string }> = {
+  pending:   { label: 'Pending',   className: 'bg-yellow-100 text-yellow-700' },
+  confirmed: { label: 'Confirmed', className: 'bg-green-100 text-green-700' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-700' },
+  completed: { label: 'Completed', className: 'bg-blue-100 text-blue-700' },
 };
+
+const MESSAGE_TYPE_LABELS: Record<string, string> = {
+  confirmation: 'Booking Confirmation',
+  reminder_7d:  '7-Day Reminder',
+  reminder_3d:  '3-Day Reminder',
+  reminder_1d:  '1-Day Reminder',
+  approval:     'Approval',
+  rejection:    'Rejection',
+};
+
+function formatDateDisplay(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AppointmentDetailPage({
   params,
@@ -46,57 +72,83 @@ export default function AppointmentDetailPage({
   params: { id: string };
 }) {
   const router = useRouter();
-  const [appt, setAppt] = useState<AppointmentDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [toast, setToast] = useState('');
+  const [appt, setAppt]             = useState<AppointmentDetail | null>(null);
+  const [preparers, setPreparers]   = useState<Preparer[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [toast, setToast]           = useState('');
+  const [toastType, setToastType]   = useState<'success' | 'error'>('success');
 
+  // Reassign state
+  const [showReassign, setShowReassign]   = useState(false);
+  const [reassignTo, setReassignTo]       = useState('');
+  const [reassigning, setReassigning]     = useState(false);
+
+  // Status update
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // ── Toast ────────────────────────────────────────────────────────────────
+  function showToast(msg: string, type: 'success' | 'error' = 'success') {
+    setToast(msg);
+    setToastType(type);
+    setTimeout(() => setToast(''), 3500);
+  }
+
+  // ── Load ─────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
-    const res = await fetch(`/api/appointments/${params.id}`);
-    if (res.ok) {
-      setAppt(await res.json());
-    }
+    const [apptRes, prepRes] = await Promise.all([
+      fetch(`/api/appointments/${params.id}`),
+      fetch('/api/preparers'),
+    ]);
+    if (apptRes.ok) setAppt(await apptRes.json());
+    if (prepRes.ok) setPreparers(await prepRes.json());
     setLoading(false);
   }, [params.id]);
 
   useEffect(() => { load(); }, [load]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  };
-
-  const updateStatus = async (status: DocStatus) => {
+  // ── Status update ────────────────────────────────────────────────────────
+  async function updateStatus(status: AppointmentStatus) {
+    if (!appt || appt.status === status) return;
     setUpdatingStatus(true);
-    const res = await fetch(`/api/appointments/${params.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doc_status: status }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/appointments/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
       await load();
       showToast('Status updated');
+    } catch {
+      showToast('Failed to update status', 'error');
+    } finally {
+      setUpdatingStatus(false);
     }
-    setUpdatingStatus(false);
-  };
+  }
 
-  const resendChecklist = async () => {
-    setResending(true);
-    const res = await fetch(`/api/appointments/${params.id}/send-checklist`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel: 'both' }),
-    });
-    if (res.ok) {
+  // ── Reassign ─────────────────────────────────────────────────────────────
+  async function handleReassign() {
+    if (!reassignTo || reassignTo === appt?.preparer_id) return;
+    setReassigning(true);
+    try {
+      const res = await fetch(`/api/appointments/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preparer_id: reassignTo }),
+      });
+      if (!res.ok) throw new Error();
+      setShowReassign(false);
+      setReassignTo('');
       await load();
-      showToast('Checklist resent successfully');
-    } else {
-      showToast('Failed to resend checklist');
+      showToast('Appointment reassigned');
+    } catch {
+      showToast('Failed to reassign appointment', 'error');
+    } finally {
+      setReassigning(false);
     }
-    setResending(false);
-  };
+  }
 
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <>
@@ -112,152 +164,206 @@ export default function AppointmentDetailPage({
         <Header title="Appointment" />
         <div className="flex-1 p-6">
           <p className="text-red-600">Appointment not found.</p>
-          <button onClick={() => router.back()} className="mt-2 text-sm text-blue-600">Go back</button>
+          <button onClick={() => router.back()} className="mt-2 text-sm text-[#1B3A5C] hover:underline">
+            ← Go back
+          </button>
         </div>
       </>
     );
   }
 
-  const { client } = appt;
+  const statusCfg = STATUS_CONFIG[appt.status] ?? STATUS_CONFIG.pending;
+  const isCancelled = appt.status === 'cancelled';
 
   return (
     <>
       <Header title="Appointment Detail" />
+
+      {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 bg-green-700 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50">
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium text-white ${
+          toastType === 'error' ? 'bg-red-600' : 'bg-green-700'
+        }`}>
           {toast}
         </div>
       )}
-      <div className="flex-1 p-6 space-y-6 max-w-3xl">
 
-        {/* Client + Appointment Info */}
+      <div className="flex-1 p-6 space-y-5 max-w-3xl">
+
+        {/* Back */}
+        <button
+          onClick={() => router.push('/dashboard/appointments')}
+          className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          All appointments
+        </button>
+
+        {/* Client + Appointment */}
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardHeader><h3 className="font-semibold text-gray-900">Client</h3></CardHeader>
             <CardBody className="space-y-1 text-sm text-gray-700">
-              <p className="font-medium text-lg text-gray-900">{client.first_name} {client.last_name}</p>
-              <p>{client.phone ?? '—'}</p>
-              <p>{client.email ?? '—'}</p>
-              <p className="text-xs text-gray-400 uppercase">{client.language_preference === 'es' ? 'Spanish' : 'English'}</p>
-              <button
-                onClick={() => router.push(`/dashboard/clients/${client.id}`)}
-                className="text-xs text-blue-600 hover:underline mt-1"
-              >
-                View client profile →
-              </button>
+              <p className="font-medium text-base text-gray-900">{appt.client_name}</p>
+              <p>{appt.client_phone}</p>
+              {appt.client_email && <p className="text-gray-500">{appt.client_email}</p>}
+              <p className="text-xs text-gray-400 uppercase mt-1">
+                {appt.language === 'es' ? 'Spanish' : 'English'}
+              </p>
             </CardBody>
           </Card>
 
           <Card>
             <CardHeader><h3 className="font-semibold text-gray-900">Appointment</h3></CardHeader>
-            <CardBody className="space-y-1 text-sm text-gray-700">
-              <p className="font-medium">{formatDate(appt.appointment_date)} at {formatTime(appt.appointment_time)}</p>
-              <p>{appt.duration_minutes} min · {appt.method.replace('_', ' ')}</p>
-              <p className="capitalize">{appt.appointment_type.replace(/_/g, ' ')}</p>
-              {appt.booked_by && <p className="text-gray-400 text-xs">Booked by: {appt.booked_by}</p>}
-              {appt.notes && <p className="text-gray-500 italic text-xs mt-1">{appt.notes}</p>}
+            <CardBody className="space-y-1.5 text-sm text-gray-700">
+              <p className="font-medium text-gray-900">{formatDateDisplay(appt.date)}</p>
+              <p>{formatTime(appt.start_time)} – {formatTime(appt.end_time)}</p>
+              <p>{TYPE_LABELS[appt.appointment_type] ?? appt.appointment_type}</p>
+              {appt.service_subtype && (
+                <p className="text-gray-500 text-xs">{SUBTYPE_LABELS[appt.service_subtype] ?? appt.service_subtype}</p>
+              )}
+              {appt.notes && (
+                <p className="text-gray-400 italic text-xs mt-2 border-t border-gray-100 pt-2">{appt.notes}</p>
+              )}
             </CardBody>
           </Card>
         </div>
 
-        {/* Status Update */}
+        {/* Preparer + Reassign */}
         <Card>
           <CardHeader className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Document Status</h3>
-            <Badge status={appt.doc_status} />
+            <h3 className="font-semibold text-gray-900">Preparer</h3>
+            {!isCancelled && (
+              <button
+                onClick={() => { setShowReassign(s => !s); setReassignTo(''); }}
+                className="text-xs text-[#1B3A5C] font-medium hover:underline"
+              >
+                {showReassign ? 'Cancel' : 'Reassign'}
+              </button>
+            )}
           </CardHeader>
           <CardBody>
-            <div className="flex gap-2 flex-wrap">
-              {DOC_STATUS_SEQUENCE.map(s => (
-                <button
-                  key={s}
-                  onClick={() => updateStatus(s)}
-                  disabled={updatingStatus || s === appt.doc_status}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:cursor-default ${
-                    s === appt.doc_status
-                      ? 'bg-blue-700 text-white border-blue-700'
-                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {statusLabels[s]}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="h-3 w-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: appt.preparer.color_hex }}
+              />
+              <span className="text-sm font-medium text-gray-900">{appt.preparer.name}</span>
             </div>
-          </CardBody>
-        </Card>
 
-        {/* Checklists sent */}
-        <Card>
-          <CardHeader className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Checklists Sent</h3>
-            <Button
-              variant="secondary"
-              isLoading={resending}
-              onClick={resendChecklist}
-              className="text-xs"
-            >
-              Resend Checklist
-            </Button>
-          </CardHeader>
-          <CardBody>
-            {appt.checklists.length === 0 ? (
-              <p className="text-sm text-gray-400">No checklists recorded.</p>
-            ) : (
-              <ul className="space-y-1">
-                {appt.checklists.map(c => (
-                  <li key={c.id} className="text-sm text-gray-700 flex items-center gap-2">
-                    <span className="text-green-500">&#10003;</span>
-                    {checklistLabels[c.checklist_type] ?? c.checklist_type}
-                    <span className="text-gray-400 text-xs">({c.language.toUpperCase()})</span>
-                  </li>
-                ))}
-              </ul>
+            {showReassign && (
+              <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2">
+                <p className="text-xs text-gray-500 font-medium">Reassign to:</p>
+                <div className="flex gap-2">
+                  <select
+                    value={reassignTo}
+                    onChange={e => setReassignTo(e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+                  >
+                    <option value="">Select preparer...</option>
+                    {preparers
+                      .filter(p => p.id !== appt.preparer_id)
+                      .map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                  </select>
+                  <Button
+                    variant="primary"
+                    isLoading={reassigning}
+                    disabled={!reassignTo}
+                    onClick={handleReassign}
+                    className="text-xs"
+                  >
+                    Confirm
+                  </Button>
+                </div>
+                <p className="text-xs text-amber-600">
+                  Frees the old time slot and books the same time for the new preparer.
+                </p>
+              </div>
             )}
           </CardBody>
         </Card>
 
-        {/* Message History */}
+        {/* Status */}
         <Card>
-          <CardHeader><h3 className="font-semibold text-gray-900">Message History</h3></CardHeader>
-          <CardBody className="p-0">
-            {appt.messages.length === 0 ? (
-              <p className="text-sm text-gray-400 px-6 py-4">No messages sent yet.</p>
+          <CardHeader className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Status</h3>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusCfg.className}`}>
+              {statusCfg.label}
+            </span>
+          </CardHeader>
+          <CardBody>
+            {isCancelled ? (
+              <p className="text-sm text-gray-400">This appointment has been cancelled.</p>
             ) : (
+              <div className="flex gap-2 flex-wrap">
+                {(['pending', 'confirmed', 'completed', 'cancelled'] as AppointmentStatus[]).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => updateStatus(s)}
+                    disabled={updatingStatus || s === appt.status}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:cursor-default ${
+                      s === appt.status
+                        ? s === 'cancelled'
+                          ? 'bg-red-600 text-white border-red-600'
+                          : 'bg-[#1B3A5C] text-white border-[#1B3A5C]'
+                        : s === 'cancelled'
+                        ? 'bg-white text-red-500 border-red-200 hover:bg-red-50'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {STATUS_CONFIG[s].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Message history */}
+        {appt.messages && appt.messages.length > 0 && (
+          <Card>
+            <CardHeader><h3 className="font-semibold text-gray-900">Message History</h3></CardHeader>
+            <CardBody className="p-0">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Channel</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Trigger</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Sent</th>
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Recipient</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {appt.messages.map(m => (
                     <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 capitalize font-medium">{m.channel}</td>
-                      <td className="px-4 py-3 text-gray-600">{triggerLabels[m.trigger] ?? m.trigger}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+                      <td className="px-4 py-3 capitalize font-medium text-gray-700">{m.channel}</td>
+                      <td className="px-4 py-3 text-gray-600">{MESSAGE_TYPE_LABELS[m.message_type] ?? m.message_type}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">
                         {m.sent_at ? new Date(m.sent_at).toLocaleString() : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          m.status === 'sent' ? 'bg-green-100 text-green-700' :
+                          m.status === 'sent'   ? 'bg-green-100 text-green-700' :
                           m.status === 'failed' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
+                                                  'bg-yellow-100 text-yellow-700'
                         }`}>
                           {m.status}
                         </span>
+                        {m.error_message && (
+                          <span className="text-xs text-red-400 ml-2">{m.error_message}</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{m.recipient}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        )}
       </div>
     </>
   );
