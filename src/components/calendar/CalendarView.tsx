@@ -71,12 +71,16 @@ export default function CalendarView() {
   const [selectedAppt,   setSelectedAppt  ] = useState<CalendarAppt | null>(null);
 
   // Derived values
-  const taxSeason  = isTaxSeason(currentDate);
-  const startHour  = 9;
-  const endHour    = taxSeason ? 19 : 17;
-  const weekStart  = getWeekStart(currentDate);
-  const numDays    = viewMode === 'day' ? 1 : (taxSeason ? 6 : 5);
-  const weekEnd    = addDays(weekStart, numDays - 1);
+  const taxSeason = isTaxSeason(currentDate);
+  const startHour = 9;
+  const endHour   = taxSeason ? 19 : 17;
+  const numDays   = viewMode === 'day' ? 1 : (taxSeason ? 6 : 5);
+
+  // Memoized so useCallback deps get stable references — prevents infinite refetch loop
+  // (plain `new Date()` creates a new object reference every render, causing the callback
+  //  to be recreated, which triggers the useEffect, which calls setLoading(true)…)
+  const weekStart = useMemo(() => getWeekStart(currentDate), [currentDate]);
+  const weekEnd   = useMemo(() => addDays(weekStart, numDays - 1), [weekStart, numDays]);
 
   // Days array passed to WeekView
   const days = useMemo(() => {
