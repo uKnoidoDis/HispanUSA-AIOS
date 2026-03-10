@@ -13,16 +13,17 @@ interface BookingModalProps {
 }
 
 type FormState = {
-  client_name:      string;
-  client_phone:     string;
-  client_email:     string;
-  appointment_type: AppointmentType | '';
-  service_subtype:  ServiceSubtype | '';
-  preparer_id:      string;
-  date:             string;
-  start_time:       string;
-  language:         'en' | 'es';
-  notes:            string;
+  client_name:          string;
+  client_phone:         string;
+  client_email:         string;
+  appointment_type:     AppointmentType | '';
+  service_subtype:      ServiceSubtype | '';
+  preparer_id:          string;
+  date:                 string;
+  start_time:           string;
+  language:             'en' | 'es';
+  notes:                string;
+  auto_send_checklist:  boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -43,16 +44,17 @@ const SERVICE_SUBTYPE_LABELS: Record<ServiceSubtype, string> = {
 };
 
 const INITIAL_FORM: FormState = {
-  client_name:      '',
-  client_phone:     '',
-  client_email:     '',
-  appointment_type: '',
-  service_subtype:  '',
-  preparer_id:      '',
-  date:             '',
-  start_time:       '',
-  language:         'es',
-  notes:            '',
+  client_name:          '',
+  client_phone:         '',
+  client_email:         '',
+  appointment_type:     '',
+  service_subtype:      '',
+  preparer_id:          '',
+  date:                 '',
+  start_time:           '',
+  language:             'es',
+  notes:                '',
+  auto_send_checklist:  true,
 };
 
 // ─── Phone validation (E.164) ─────────────────────────────────────────────────
@@ -170,16 +172,17 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_name:      form.client_name.trim(),
-          client_phone:     normalizePhone(form.client_phone),
-          client_email:     form.client_email.trim() || null,
-          appointment_type: form.appointment_type,
-          service_subtype:  form.service_subtype || null,
-          preparer_id:      form.preparer_id,
-          date:             form.date,
-          start_time:       selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime,
-          language:         form.language,
-          notes:            form.notes.trim() || null,
+          client_name:          form.client_name.trim(),
+          client_phone:         normalizePhone(form.client_phone),
+          client_email:         form.client_email.trim() || null,
+          appointment_type:     form.appointment_type,
+          service_subtype:      form.service_subtype || null,
+          preparer_id:          form.preparer_id,
+          date:                 form.date,
+          start_time:           selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime,
+          language:             form.language,
+          notes:                form.notes.trim() || null,
+          auto_send_checklist:  form.auto_send_checklist,
         }),
       });
 
@@ -329,6 +332,12 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                     onClick={() => {
                       set('appointment_type', value);
                       set('service_subtype', '');
+                      setForm(f => ({
+                        ...f,
+                        appointment_type: value,
+                        service_subtype: '',
+                        auto_send_checklist: value !== 'professional_services',
+                      }));
                     }}
                     className={`flex items-center justify-between w-full px-4 py-3 rounded-lg border text-sm font-medium text-left transition-colors ${
                       form.appointment_type === value
@@ -540,6 +549,41 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
               )}
             </div>
           </fieldset>
+
+          {/* ── Section: Messaging ─────────────────────────────────── */}
+          {form.appointment_type && (
+            <fieldset>
+              <legend className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Messaging
+              </legend>
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={form.auto_send_checklist}
+                    onChange={e => setForm(f => ({ ...f, auto_send_checklist: e.target.checked }))}
+                  />
+                  <div className={`w-10 h-5 rounded-full transition-colors ${
+                    form.auto_send_checklist ? 'bg-[#1B3A5C]' : 'bg-gray-300'
+                  }`} />
+                  <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    form.auto_send_checklist ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    Send document checklist automatically
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {form.auto_send_checklist
+                      ? 'Checklist will be sent via SMS + email when appointment is created'
+                      : 'Only appointment confirmation will be sent — checklist can be sent manually'}
+                  </p>
+                </div>
+              </label>
+            </fieldset>
+          )}
 
           {/* ── Section: Notes ─────────────────────────────────────── */}
           <fieldset>

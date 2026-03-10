@@ -159,23 +159,27 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // auto_send_checklist: true for tax types, false for professional_services
+  const autoSendChecklist = input.appointment_type !== 'professional_services';
+
   // ── Create appointment with status = pending ────────────────────────────────
   const { data: appointment, error: apptError } = await supabase
     .from('appointments')
     .insert({
-      preparer_id:      assignedPreparerId,
-      client_name:      input.client_name.trim(),
-      client_phone:     phone,
-      client_email:     input.client_email ?? null,
-      appointment_type: input.appointment_type,
-      service_subtype:  input.service_subtype ?? null,
-      date:             input.date,
-      start_time:       startTime,
-      end_time:         endTime,
-      status:           'pending',
-      language:         input.language,
-      booked_by:        'client',
-      notes:            null,
+      preparer_id:          assignedPreparerId,
+      client_name:          input.client_name.trim(),
+      client_phone:         phone,
+      client_email:         input.client_email ?? null,
+      appointment_type:     input.appointment_type,
+      service_subtype:      input.service_subtype ?? null,
+      date:                 input.date,
+      start_time:           startTime,
+      end_time:             endTime,
+      status:               'pending',
+      language:             input.language,
+      booked_by:            'client',
+      notes:                null,
+      auto_send_checklist:  autoSendChecklist,
     })
     .select('id, date, start_time, end_time, appointment_type, status')
     .single();

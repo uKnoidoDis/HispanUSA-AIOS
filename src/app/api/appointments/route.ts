@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { normalizePhone } from '@/lib/utils';
 import { addThirtyMinutes } from '@/lib/availability-utils';
+import { sendConfirmationMessage, sendChecklistMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
 
@@ -18,8 +19,9 @@ const createAppointmentSchema = z.object({
   preparer_id:      z.string().uuid('Invalid preparer'),
   date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
   start_time:       z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM or HH:MM:SS'),
-  language:         z.enum(['en', 'es']).default('es'),
-  notes:            z.string().optional().nullable(),
+  language:             z.enum(['en', 'es']).default('es'),
+  notes:                z.string().optional().nullable(),
+  auto_send_checklist:  z.boolean().optional(),
 }).refine(
   data => data.appointment_type !== 'professional_services' || !!data.service_subtype,
   { message: 'service_subtype is required for professional_services' }
@@ -137,28 +139,53 @@ export async function POST(request: NextRequest) {
 
   // Step 2: Create appointment — status = confirmed immediately (staff booking)
   const phone = normalizePhone(input.client_phone);
+  const autoSendChecklist = input.auto_send_checklist ?? (input.appointment_type !== 'professional_services');
 
   const { data: appointment, error: apptError } = await supabase
     .from('appointments')
     .insert({
-      preparer_id:      input.preparer_id,
-      client_name:      input.client_name,
-      client_phone:     phone,
-      client_email:     input.client_email ?? null,
-      appointment_type: input.appointment_type,
-      service_subtype:  input.service_subtype ?? null,
-      date:             input.date,
-      start_time:       startTime,
-      end_time:         endTime,
-      status:           'confirmed',
-      language:         input.language,
-      booked_by:        'staff',
-      notes:            input.notes ?? null,
+      preparer_id:          input.preparer_id,
+      client_name:          input.client_name,
+      client_phone:         phone,
+      client_email:         input.client_email ?? null,
+      appointment_type:     input.appointment_type,
+      service_subtype:      input.service_subtype ?? null,
+      date:                 input.date,
+      start_time:           startTime,
+      end_time:             endTime,
+      status:               'confirmed',
+      language:             input.language,
+      booked_by:            'staff',
+      notes:                input.notes ?? null,
+      auto_send_checklist:  autoSendChecklist,
     })
     .select('*, preparer:preparers(id, name, color_hex, color_name)')
     .single();
 
   if (apptError) return NextResponse.json({ error: apptError.message }, { status: 500 });
+
+  // Step 3: Send confirmation messages
+  const messagingAppt: MessagingAppt = {
+    id:                   appointment.id,
+    client_name:          appointment.client_name,
+    client_phone:         appointment.client_phone,
+    client_email:         appointment.client_email,
+    appointment_type:     appointment.appointment_type,
+    service_subtype:      appointment.service_subtype,
+    date:                 appointment.date,
+    start_time:           appointment.start_time,
+    language:             appointment.language,
+    auto_send_checklist:  autoSendChecklist,
+    checklist_sent:       false,
+  };
+
+  if (autoSendChecklist) {
+    // Send checklist message (includes appointment info + document list)
+    await sendChecklistMessage(messagingAppt, supabase);
+  } else {
+    // Send appointment-only confirmation
+    await sendConfirmationMessage(messagingAppt, supabase, 'confirmation');
+  }
 
   return NextResponse.json(appointment, { status: 201 });
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
+// Prevent Next.js from statically caching this response.
+// Without this, new client bookings may not appear until the cache invalidates.
+export const dynamic = 'force-dynamic';
+
 // GET /api/appointments/pending
 // Returns pending appointments list + count for the approval queue.
 

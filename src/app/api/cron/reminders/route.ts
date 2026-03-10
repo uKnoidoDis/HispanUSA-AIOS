@@ -1,92 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { buildAndSendMessages } from '@/lib/message-builder';
-import { getReminderSchedule } from '@/lib/reminder-scheduler';
-import { todayString } from '@/lib/utils';
-import type { ChecklistType, ReminderTrigger } from '@/types';
+import { sendReminderMessage, type MessagingAppt } from '@/lib/messaging';
+import { todayString, addDaysToDate } from '@/lib/utils';
 
-export async function GET(request: NextRequest) {
-  // Validate CRON_SECRET
-  const authHeader = request.headers.get('authorization');
-  const expectedSecret = process.env.CRON_SECRET;
-  if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const dynamic = 'force-dynamic';
 
+// GET /api/cron/reminders
+// Runs daily at 8 AM EST (0 13 * * * UTC) via Vercel Cron.
+// Sends 7-day, 3-day, and 1-day reminders for confirmed appointments.
+// Skips if a reminder of that type has already been sent (idempotent).
+
+type ReminderType = 'reminder_7d' | 'reminder_3d' | 'reminder_1d';
+
+const REMINDER_SCHEDULE: { type: ReminderType; daysAhead: number }[] = [
+  { type: 'reminder_7d', daysAhead: 7 },
+  { type: 'reminder_3d', daysAhead: 3 },
+  { type: 'reminder_1d', daysAhead: 1 },
+];
+
+export async function GET(_request: NextRequest) {
   const supabase = createServerClient();
   const today = todayString();
-  const schedule = getReminderSchedule(today);
 
-  const results = {
-    processed: 0,
-    sent_sms: 0,
-    sent_email: 0,
-    failed: 0,
-    details: [] as Array<{
-      trigger: ReminderTrigger;
-      appointment_id: string;
-      client_name: string;
-      sms: boolean | null;
-      email: boolean | null;
-    }>,
+  const results: Record<string, { sent: number; skipped: number; errors: number }> = {
+    reminder_7d: { sent: 0, skipped: 0, errors: 0 },
+    reminder_3d: { sent: 0, skipped: 0, errors: 0 },
+    reminder_1d: { sent: 0, skipped: 0, errors: 0 },
   };
 
-  for (const { trigger, targetDate } of schedule) {
-    // Query appointments on target date that haven't received this reminder and docs aren't done
-    const { data: appointments, error } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        client:clients(*),
-        checklists:appointment_checklists(*),
-        sent_messages:message_log(id, trigger, status, channel)
-      `)
-      .eq('appointment_date', targetDate)
-      .neq('doc_status', 'docs_received');
+  for (const { type, daysAhead } of REMINDER_SCHEDULE) {
+    const targetDate = addDaysToDate(today, daysAhead);
 
-    if (error) {
-      console.error(`Error querying appointments for trigger ${trigger}:`, error);
+    // Fetch all confirmed appointments for that date
+    const { data: appointments, error: fetchErr } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('date', targetDate)
+      .eq('status', 'confirmed');
+
+    if (fetchErr) {
+      console.error(`[CRON] Failed to fetch appointments for ${targetDate}:`, fetchErr.message);
       continue;
     }
 
-    const due = (appointments ?? []).filter((appt: Record<string, unknown>) => {
-      const msgs = (appt.sent_messages as Array<{ trigger: string; status: string }>) ?? [];
-      return !msgs.some(m => m.trigger === trigger && m.status === 'sent');
-    });
+    for (const appt of (appointments ?? [])) {
+      // Check if this reminder type was already sent (any channel)
+      const { data: existingMsg } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('appointment_id', appt.id as string)
+        .eq('message_type', type)
+        .eq('status', 'sent')
+        .limit(1)
+        .maybeSingle();
 
-    for (const appt of due) {
-      results.processed++;
-      const client = appt.client as Record<string, unknown>;
-      const checklistTypes = (appt.checklists as Array<{ checklist_type: ChecklistType }>).map(c => c.checklist_type);
+      if (existingMsg) {
+        results[type].skipped++;
+        continue;
+      }
+
+      const messagingAppt: MessagingAppt = {
+        id:                   appt.id as string,
+        client_name:          appt.client_name as string,
+        client_phone:         appt.client_phone as string,
+        client_email:         appt.client_email as string | null,
+        appointment_type:     appt.appointment_type as MessagingAppt['appointment_type'],
+        service_subtype:      appt.service_subtype as string | null,
+        date:                 appt.date as string,
+        start_time:           appt.start_time as string,
+        language:             appt.language as 'en' | 'es',
+        auto_send_checklist:  appt.auto_send_checklist as boolean,
+        checklist_sent:       appt.checklist_sent as boolean,
+      };
 
       try {
-        const msgResults = await buildAndSendMessages(
-          appt as unknown as Parameters<typeof buildAndSendMessages>[0],
-          client as unknown as Parameters<typeof buildAndSendMessages>[1],
-          checklistTypes,
-          trigger as ReminderTrigger,
-          supabase
-        );
-
-        if (msgResults.sms?.success) results.sent_sms++;
-        else if (msgResults.sms && !msgResults.sms.success) results.failed++;
-
-        if (msgResults.email?.success) results.sent_email++;
-        else if (msgResults.email && !msgResults.email.success) results.failed++;
-
-        results.details.push({
-          trigger: trigger as ReminderTrigger,
-          appointment_id: appt.id as string,
-          client_name: `${client.first_name} ${client.last_name}`,
-          sms: msgResults.sms?.success ?? null,
-          email: msgResults.email?.success ?? null,
-        });
-      } catch (err) {
-        results.failed++;
-        console.error(`Failed to send for appointment ${appt.id}:`, err);
+        await sendReminderMessage(messagingAppt, supabase, type);
+        results[type].sent++;
+      } catch (e) {
+        console.error(`[CRON] sendReminderMessage failed for ${appt.id}:`, e);
+        results[type].errors++;
       }
     }
   }
 
-  return NextResponse.json(results);
+  console.log('[CRON] reminders complete:', results);
+  return NextResponse.json({ date: today, results });
 }

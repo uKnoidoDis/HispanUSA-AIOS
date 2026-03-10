@@ -1,6 +1,6 @@
 // ============================================================
 // Scheduling System Types
-// Matches the schema in 002_scheduling_schema.sql
+// Matches the schema in 002_scheduling_schema.sql + 003_add_messaging_fields.sql
 // ============================================================
 
 export interface Preparer {
@@ -67,6 +67,7 @@ export interface Appointment {
   language: 'en' | 'es';
   booked_by: 'client' | 'staff';
   checklist_sent: boolean;
+  auto_send_checklist: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;

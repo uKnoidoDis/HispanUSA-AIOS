@@ -49,12 +49,13 @@ const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: strin
 };
 
 const MESSAGE_TYPE_LABELS: Record<string, string> = {
-  confirmation: 'Booking Confirmation',
-  reminder_7d:  '7-Day Reminder',
-  reminder_3d:  '3-Day Reminder',
-  reminder_1d:  '1-Day Reminder',
-  approval:     'Approval',
-  rejection:    'Rejection',
+  confirmation:      'Booking Confirmation',
+  reminder_7d:       '7-Day Reminder',
+  reminder_3d:       '3-Day Reminder',
+  reminder_1d:       '1-Day Reminder',
+  approval:          'Approval',
+  rejection:         'Rejection',
+  checklist_manual:  'Checklist (Manual)',
 };
 
 function formatDateDisplay(dateStr: string): string {
@@ -85,6 +86,9 @@ export default function AppointmentDetailPage({
 
   // Status update
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Send checklist
+  const [sendingChecklist, setSendingChecklist] = useState(false);
 
   // ── Toast ────────────────────────────────────────────────────────────────
   function showToast(msg: string, type: 'success' | 'error' = 'success') {
@@ -145,6 +149,24 @@ export default function AppointmentDetailPage({
       showToast('Failed to reassign appointment', 'error');
     } finally {
       setReassigning(false);
+    }
+  }
+
+  // ── Send checklist ────────────────────────────────────────────────────────
+  async function handleSendChecklist() {
+    setSendingChecklist(true);
+    try {
+      const res = await fetch(`/api/appointments/${params.id}/send-checklist`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? 'Failed to send checklist');
+      }
+      await load();
+      showToast('Document checklist sent');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to send checklist', 'error');
+    } finally {
+      setSendingChecklist(false);
     }
   }
 
@@ -322,6 +344,41 @@ export default function AppointmentDetailPage({
             )}
           </CardBody>
         </Card>
+
+        {/* Document Checklist */}
+        {appt.status === 'confirmed' && (
+          <Card>
+            <CardHeader className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Document Checklist</h3>
+              {appt.checklist_sent && (
+                <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">
+                  Sent
+                </span>
+              )}
+            </CardHeader>
+            <CardBody>
+              {appt.checklist_sent ? (
+                <p className="text-sm text-gray-500">
+                  Document checklist has been sent to the client.
+                </p>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-gray-500 flex-1">
+                    No checklist has been sent yet.
+                  </p>
+                  <Button
+                    variant="primary"
+                    isLoading={sendingChecklist}
+                    onClick={handleSendChecklist}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Send Document Checklist
+                  </Button>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        )}
 
         {/* Message history */}
         {appt.messages && appt.messages.length > 0 && (

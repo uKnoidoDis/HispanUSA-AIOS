@@ -1,52 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { buildAndSendMessages } from '@/lib/message-builder';
-import type { ChecklistType } from '@/types';
+import { sendChecklistMessage, type MessagingAppt } from '@/lib/messaging';
 
-const sendChecklistSchema = z.object({
-  channel: z.enum(['sms', 'email', 'both']).default('both'),
-});
+// POST /api/appointments/[id]/send-checklist
+// Manually sends the document checklist for a confirmed appointment.
+// Only available when checklist_sent = false.
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const supabase = createServerClient();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    body = {};
-  }
-
-  const parsed = sendChecklistSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  // Load appointment with client and checklists
-  const { data: appointment, error: apptError } = await supabase
+  const { data: appt, error: fetchErr } = await supabase
     .from('appointments')
-    .select(`*, client:clients(*), checklists:appointment_checklists(*)`)
+    .select('*')
     .eq('id', params.id)
     .single();
 
-  if (apptError || !appointment) {
+  if (fetchErr || !appt) {
     return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
   }
 
-  const client = appointment.client;
-  const checklistTypes = (appointment.checklists as Array<{ checklist_type: ChecklistType }>).map(c => c.checklist_type);
+  if (appt.checklist_sent) {
+    return NextResponse.json({ error: 'Checklist already sent' }, { status: 409 });
+  }
 
-  const results = await buildAndSendMessages(
-    appointment,
-    client,
-    checklistTypes,
-    'manual_resend',
-    supabase
-  );
+  const messagingAppt: MessagingAppt = {
+    id:                   appt.id as string,
+    client_name:          appt.client_name as string,
+    client_phone:         appt.client_phone as string,
+    client_email:         appt.client_email as string | null,
+    appointment_type:     appt.appointment_type as MessagingAppt['appointment_type'],
+    service_subtype:      appt.service_subtype as string | null,
+    date:                 appt.date as string,
+    start_time:           appt.start_time as string,
+    language:             appt.language as 'en' | 'es',
+    auto_send_checklist:  appt.auto_send_checklist as boolean,
+    checklist_sent:       false,
+  };
 
-  return NextResponse.json({ success: true, results });
+  const result = await sendChecklistMessage(messagingAppt, supabase);
+
+  return NextResponse.json({ sms: result.sms, email: result.email });
 }
