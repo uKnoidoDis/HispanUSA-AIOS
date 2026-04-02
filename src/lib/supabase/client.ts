@@ -1,17 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
 
-let client: ReturnType<typeof createClient> | null = null;
-
+// Use @supabase/ssr so session tokens are stored in cookies,
+// allowing the middleware to read and validate them server-side.
 export function createBrowserClient() {
-  if (client) return client;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase public environment variables');
-  }
-
-  client = createClient(supabaseUrl, supabaseAnonKey);
-  return client;
+  return createSupabaseBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }
