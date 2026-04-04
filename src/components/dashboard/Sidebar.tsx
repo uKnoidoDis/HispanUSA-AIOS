@@ -29,8 +29,9 @@ export default function Sidebar() {
       if (user?.user_metadata?.name) {
         setUserName(user.user_metadata.name);
       } else if (user?.email) {
-        // Fallback to email prefix
-        setUserName(user.email.split('@')[0]);
+        // Fallback to email prefix, capitalized
+        const prefix = user.email.split('@')[0];
+        setUserName(prefix.charAt(0).toUpperCase() + prefix.slice(1));
       }
     });
   }, []);
