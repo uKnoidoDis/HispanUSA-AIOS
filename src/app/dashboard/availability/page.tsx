@@ -75,6 +75,7 @@ export default function AvailabilityPage() {
   const [isFetchingSlots, setIsFetchingSlots] = useState(false);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const [isCopyLoading, setIsCopyLoading] = useState(false);
+  const [isClearDayLoading, setIsClearDayLoading] = useState(false);
 
   // ── Toast state ───────────────────────────────────────────────────────
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -316,10 +317,74 @@ export default function AvailabilityPage() {
     }
   }, [selectedPreparer, isCopyLoading, currentWeekStart, showToast]);
 
+  // ── Clear day (delete all open slots for a single day) ────────────────
+  const handleClearDay = useCallback(
+    async (dayDate: Date) => {
+      if (!selectedPreparer || isClearDayLoading) return;
+
+      const dateStr = format(dayDate, 'yyyy-MM-dd');
+      const dayLabel = format(dayDate, 'EEEE, MMMM d');
+
+      const confirmed = window.confirm(
+        `Are you sure you want to close all open slots for ${dayLabel}?\n\nThis will remove all unbooked availability for ${selectedPreparer.name} on this day. Booked slots will not be affected.`
+      );
+
+      if (!confirmed) return;
+
+      setIsClearDayLoading(true);
+
+      // Optimistic UI: remove unbooked slots for this day from the Map
+      const removedSlots = new Map<string, SlotWithMeta>();
+      setSlots(prev => {
+        const next = new Map(prev);
+        Array.from(next.entries()).forEach(([key, slot]) => {
+          if (slot.date === dateStr && !slot.is_booked) {
+            removedSlots.set(key, slot);
+            next.delete(key);
+          }
+        });
+        return next;
+      });
+
+      const res = await fetch('/api/availability/clear-day', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preparer_id: selectedPreparer.id,
+          date: dateStr,
+        }),
+      });
+
+      setIsClearDayLoading(false);
+
+      if (res.ok) {
+        const data = await res.json();
+        const count = data.deleted ?? 0;
+        showToast(
+          count === 0
+            ? 'No open slots to clear'
+            : `Cleared ${count} slot${count === 1 ? '' : 's'} for ${dayLabel}`,
+          count === 0 ? 'info' : 'success'
+        );
+      } else {
+        // Revert optimistic removal
+        setSlots(prev => {
+          const next = new Map(prev);
+          Array.from(removedSlots.entries()).forEach(([key, slot]) => {
+            next.set(key, slot);
+          });
+          return next;
+        });
+        showToast('Failed to clear day', 'error');
+      }
+    },
+    [selectedPreparer, isClearDayLoading, showToast]
+  );
+
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
-  const isAnyBulkBusy = isBulkLoading || isCopyLoading;
+  const isAnyBulkBusy = isBulkLoading || isCopyLoading || isClearDayLoading;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-gray-50">
@@ -471,6 +536,59 @@ export default function AvailabilityPage() {
               )}
               Copy Week →
             </button>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-gray-200 mx-1" />
+
+            {/* Clear Day dropdown + button */}
+            <div className="flex items-center gap-1.5">
+              <select
+                id="clear-day-select"
+                defaultValue=""
+                className="
+                  appearance-none px-2.5 py-1.5 text-xs font-medium border border-red-200
+                  rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2
+                  focus:ring-red-400 focus:border-red-400 cursor-pointer
+                  transition-colors hover:border-red-300
+                "
+              >
+                <option value="" disabled>Pick day…</option>
+                {weekDays.map(day => (
+                  <option key={format(day, 'yyyy-MM-dd')} value={format(day, 'yyyy-MM-dd')}>
+                    {format(day, 'EEE M/d')}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => {
+                  const sel = document.getElementById('clear-day-select') as HTMLSelectElement;
+                  const val = sel?.value;
+                  if (!val) {
+                    showToast('Select a day to clear first', 'info');
+                    return;
+                  }
+                  const [y, m, d] = val.split('-').map(Number);
+                  handleClearDay(new Date(y, m - 1, d));
+                }}
+                disabled={isAnyBulkBusy}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                  text-red-600 border border-red-200 bg-red-50
+                  hover:bg-red-100 hover:border-red-300 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
+                "
+              >
+                {isClearDayLoading ? (
+                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+                Clear Day
+              </button>
+            </div>
 
             {/* Color legend for selected preparer */}
             <div className="ml-auto flex items-center gap-4 text-xs text-gray-500 select-none">
