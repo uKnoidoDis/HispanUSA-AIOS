@@ -43,7 +43,6 @@ export default function PendingPage() {
   const [loading,  setLoading ] = useState(true);
   const [error,    setError   ] = useState<string | null>(null);
 
-  // Track per-item action state: 'idle' | 'approving' | 'rejecting' | 'approved' | 'rejected'
   const [actionState, setActionState] = useState<Record<string, string>>({});
 
   const fetchPending = useCallback(async () => {
@@ -69,7 +68,6 @@ export default function PendingPage() {
       const res = await fetch(`/api/appointments/${id}/approve`, { method: 'POST' });
       if (!res.ok) throw new Error();
       setActionState(s => ({ ...s, [id]: 'approved' }));
-      // Remove from list after brief delay to show feedback
       setTimeout(() => setItems(prev => prev.filter(a => a.id !== id)), 1200);
     } catch {
       setActionState(s => ({ ...s, [id]: 'idle' }));
@@ -94,15 +92,15 @@ export default function PendingPage() {
       {/* ── Page header ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#1B3A5C]">Pending Approvals</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {loading ? 'Loading…' : `${items.length} request${items.length !== 1 ? 's' : ''} awaiting review`}
+          <h1 className="text-lg font-bold text-[#0F2137]">Pending Approvals</h1>
+          <p className="text-sm text-gray-500 mt-0.5 font-normal">
+            {loading ? 'Loading...' : `${items.length} request${items.length !== 1 ? 's' : ''} awaiting review`}
           </p>
         </div>
         <button
           onClick={fetchPending}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 ml-8 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 ml-8 rounded-md border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 transition-all duration-150"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -111,7 +109,7 @@ export default function PendingPage() {
 
       {/* ── Error ──────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
           <X className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -121,7 +119,7 @@ export default function PendingPage() {
       {loading && (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+            <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-5 animate-pulse">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-40" />
@@ -129,8 +127,8 @@ export default function PendingPage() {
                   <div className="h-3 bg-gray-100 rounded w-52" />
                 </div>
                 <div className="flex gap-2">
-                  <div className="h-9 w-24 bg-gray-100 rounded-lg" />
-                  <div className="h-9 w-24 bg-gray-100 rounded-lg" />
+                  <div className="h-9 w-24 bg-gray-100 rounded-md" />
+                  <div className="h-9 w-24 bg-gray-100 rounded-md" />
                 </div>
               </div>
             </div>
@@ -141,10 +139,10 @@ export default function PendingPage() {
       {/* ── Empty state ──────────────────────────────────────────────────── */}
       {!loading && !error && items.length === 0 && (
         <div className="text-center py-20">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Inbox className="w-8 h-8 text-gray-400" />
+          <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Inbox className="w-7 h-7 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-1">All caught up</h3>
+          <h3 className="text-base font-semibold text-gray-700 mb-1">All caught up</h3>
           <p className="text-sm text-gray-400">No pending appointment requests.</p>
         </div>
       )}
@@ -160,9 +158,9 @@ export default function PendingPage() {
             return (
               <div
                 key={appt.id}
-                className={`bg-white rounded-xl border-2 p-5 transition-all duration-300 ${
-                  state === 'approved' ? 'border-green-300 bg-green-50' :
-                  state === 'rejected' ? 'border-red-200 bg-red-50' :
+                className={`bg-white rounded-lg border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-all duration-300 ${
+                  state === 'approved' ? 'border-emerald-300 bg-emerald-50/50' :
+                  state === 'rejected' ? 'border-red-200 bg-red-50/50' :
                   'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -173,17 +171,17 @@ export default function PendingPage() {
 
                     {/* Name + type badge */}
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <h3 className="font-bold text-gray-900 text-base">{appt.client_name}</h3>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EDF2F8] text-[#1B3A5C]">
+                      <h3 className="font-bold text-gray-900 text-sm">{appt.client_name}</h3>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EDF2F8] text-[#1B3A5C]">
                         {TYPE_LABELS[appt.appointment_type]}
                       </span>
                       {appt.service_subtype && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600">
                           {SUBTYPE_LABELS[appt.service_subtype] ?? appt.service_subtype}
                         </span>
                       )}
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        appt.language === 'es' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                        appt.language === 'es' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
                       }`}>
                         {appt.language === 'es' ? 'ES' : 'EN'}
                       </span>
@@ -193,7 +191,7 @@ export default function PendingPage() {
                     <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-1.5">
                       <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                       <span className="font-medium">{formatDate(appt.date)}</span>
-                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-300">·</span>
                       <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                       <span>{formatTime(appt.start_time)} – {formatTime(appt.end_time)}</span>
                     </div>
@@ -202,14 +200,14 @@ export default function PendingPage() {
                     <div className="flex flex-wrap gap-x-4 gap-y-1">
                       <div className="flex items-center gap-1.5 text-sm text-gray-500">
                         <Phone className="w-3.5 h-3.5 text-gray-400" />
-                        <a href={`tel:${appt.client_phone}`} className="hover:text-[#1B3A5C] hover:underline">
+                        <a href={`tel:${appt.client_phone}`} className="hover:text-[#1B3A5C] transition-colors duration-150">
                           {formatPhone(appt.client_phone)}
                         </a>
                       </div>
                       {appt.client_email && (
                         <div className="flex items-center gap-1.5 text-sm text-gray-500">
                           <Mail className="w-3.5 h-3.5 text-gray-400" />
-                          <a href={`mailto:${appt.client_email}`} className="hover:text-[#1B3A5C] hover:underline truncate max-w-[200px]">
+                          <a href={`mailto:${appt.client_email}`} className="hover:text-[#1B3A5C] transition-colors duration-150 truncate max-w-[200px]">
                             {appt.client_email}
                           </a>
                         </div>
@@ -239,8 +237,8 @@ export default function PendingPage() {
                   {/* ── Action buttons ──────────────────────────────────── */}
                   <div className="flex items-center gap-2 flex-shrink-0 sm:flex-col sm:items-stretch">
                     {isDone ? (
-                      <div className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold ${
-                        state === 'approved' ? 'text-green-700 bg-green-100' : 'text-red-600 bg-red-100'
+                      <div className={`flex items-center gap-1.5 px-4 py-2.5 rounded-md text-sm font-semibold ${
+                        state === 'approved' ? 'text-emerald-700 bg-emerald-100' : 'text-red-600 bg-red-100'
                       }`}>
                         {state === 'approved' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                         {state === 'approved' ? 'Approved' : 'Rejected'}
@@ -250,7 +248,7 @@ export default function PendingPage() {
                         <button
                           onClick={() => approve(appt.id)}
                           disabled={isActing}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors min-w-[90px]"
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#22C55E] hover:bg-emerald-600 disabled:opacity-60 text-white text-sm font-semibold rounded-md transition-colors duration-150 min-w-[90px] shadow-sm"
                         >
                           {state === 'approving' ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -264,7 +262,7 @@ export default function PendingPage() {
                         <button
                           onClick={() => reject(appt.id)}
                           disabled={isActing}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white hover:bg-red-50 disabled:opacity-60 text-red-600 text-sm font-semibold rounded-lg border-2 border-red-200 hover:border-red-400 transition-colors min-w-[90px]"
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white hover:bg-red-50 disabled:opacity-60 text-red-600 text-sm font-semibold rounded-md border border-red-200 hover:border-red-300 transition-all duration-150 min-w-[90px]"
                         >
                           {state === 'rejecting' ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />

@@ -10,12 +10,12 @@ export function Table({ headers, children, className = '' }: TableProps) {
   return (
     <div className={`overflow-x-auto ${className}`}>
       <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-50/80">
           <tr>
             {headers.map((header, i) => (
               <th
                 key={i}
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider"
               >
                 {header}
               </th>
@@ -39,8 +39,8 @@ export function TableRow({ children, onClick, className = '' }: TableRowProps) {
     <tr
       onClick={onClick}
       className={`
-        ${onClick ? 'cursor-pointer hover:bg-gray-50' : ''}
-        transition-colors
+        ${onClick ? 'cursor-pointer hover:bg-gray-50/80' : ''}
+        transition-colors duration-150 even:bg-gray-50/40
         ${className}
       `}
     >

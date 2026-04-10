@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Plus, Clock, Calendar, ChevronRight } from 'lucide-react';
 import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
 import { formatTime } from '@/lib/utils';
@@ -23,10 +24,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: string }> = {
-  pending:   { label: 'Pending',   className: 'bg-yellow-100 text-yellow-700' },
-  confirmed: { label: 'Confirmed', className: 'bg-green-100 text-green-700' },
-  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-700' },
-  completed: { label: 'Completed', className: 'bg-blue-100 text-blue-700' },
+  pending:   { label: 'Pending',   className: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  confirmed: { label: 'Confirmed', className: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-50 text-red-600 border border-red-200' },
+  completed: { label: 'Completed', className: 'bg-blue-50 text-blue-700 border border-blue-200' },
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -40,40 +41,6 @@ function getGreeting(): string {
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
-}
-
-// ─── SVG Icons ─────────────────────────────────────────────────────────────────
-
-function PlusIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -155,18 +122,10 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-[#1B3A5C]">
+              <h1 className="text-xl font-bold text-[#0F2137]">
                 {getGreeting()}
               </h1>
-              <p className="text-sm text-gray-500 mt-0.5">{todayFormatted}</p>
-            </div>
-
-            {/* SMS Status Indicator */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
-              <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-xs font-medium text-amber-700">
-                SMS Pending A2P Registration
-              </span>
+              <p className="text-sm text-gray-500 mt-0.5 font-normal">{todayFormatted}</p>
             </div>
           </div>
         </div>
@@ -178,39 +137,42 @@ export default function DashboardPage() {
           {/* ── Stats Cards ─────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total today */}
-            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm">
-              <p className="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1">Today</p>
-              <p className="text-3xl font-bold text-[#1B3A5C]">
+            <div className="bg-white rounded-lg border border-gray-200 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative">
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#D4932A]" />
+              <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Today</p>
+              <p className="text-3xl font-bold text-[#0F2137]">
                 {loading ? '—' : total}
               </p>
               <p className="text-xs text-gray-400 mt-1">appointments</p>
             </div>
 
             {/* Confirmed */}
-            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm">
-              <p className="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1">Confirmed</p>
-              <p className="text-3xl font-bold text-green-600">
+            <div className="bg-white rounded-lg border border-gray-200 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative">
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#22C55E]" />
+              <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Confirmed</p>
+              <p className="text-3xl font-bold text-[#22C55E]">
                 {loading ? '—' : confirmed}
               </p>
               <p className="text-xs text-gray-400 mt-1">ready to go</p>
             </div>
 
-            {/* Pending Approval — links to /dashboard/pending */}
+            {/* Pending Approval */}
             <Link
               href="/dashboard/pending"
-              className={`rounded-xl border-2 px-5 py-4 shadow-sm transition-all hover:shadow-md ${
+              className={`rounded-lg px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative transition-all duration-150 hover:shadow-md ${
                 pendingCount > 0
-                  ? 'bg-amber-50 border-amber-300 hover:border-amber-400'
-                  : 'bg-white border-gray-200 hover:border-gray-300'
+                  ? 'bg-amber-50/50 border border-amber-200 hover:border-amber-300'
+                  : 'bg-white border border-gray-200 hover:border-gray-300'
               }`}
             >
-              <p className="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1">Pending</p>
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#F59E0B]" />
+              <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Pending</p>
               <div className="flex items-center gap-2">
-                <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-[#F59E0B]' : 'text-gray-400'}`}>
                   {loading ? '—' : pendingCount}
                 </p>
                 {pendingCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wide animate-pulse">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold uppercase tracking-wide">
                     Review
                   </span>
                 )}
@@ -219,9 +181,10 @@ export default function DashboardPage() {
             </Link>
 
             {/* Completed */}
-            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm">
-              <p className="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1">Completed</p>
-              <p className="text-3xl font-bold text-blue-600">
+            <div className="bg-white rounded-lg border border-gray-200 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative">
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gray-300" />
+              <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Completed</p>
+              <p className="text-3xl font-bold text-[#3B82F6]">
                 {loading ? '—' : completed}
               </p>
               <p className="text-xs text-gray-400 mt-1">finished today</p>
@@ -232,39 +195,39 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#1B3A5C] text-white text-sm font-semibold hover:bg-[#244B75] transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#1B3A5C] text-white text-sm font-semibold hover:bg-[#244B75] transition-colors duration-150 shadow-sm"
             >
-              <PlusIcon />
+              <Plus className="w-4 h-4" />
               New Appointment
             </button>
             <Link
               href="/dashboard/availability"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-150"
             >
-              <ClockIcon />
+              <Clock className="w-4 h-4" />
               Manage Availability
             </Link>
             <Link
               href="/dashboard/calendar"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-150"
             >
-              <CalendarIcon />
+              <Calendar className="w-4 h-4" />
               View Calendar
             </Link>
           </div>
 
           {/* ── Upcoming Appointments ───────────────────────────────────── */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-[#1B3A5C] uppercase tracking-wide">
+              <h2 className="text-sm font-bold text-[#0F2137] uppercase tracking-wide">
                 Upcoming Today
               </h2>
               <Link
                 href="/dashboard/appointments"
-                className="flex items-center gap-1 text-xs font-medium text-[#1B3A5C] hover:text-[#244B75] transition-colors"
+                className="flex items-center gap-1 text-xs font-medium text-[#1B3A5C] hover:text-[#244B75] transition-colors duration-150"
               >
                 View all
-                <ArrowRightIcon />
+                <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
@@ -282,13 +245,17 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : upcoming.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <p className="text-sm text-gray-400 mb-2">No upcoming appointments today.</p>
+              <div className="px-5 py-12 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Calendar className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-500 mb-1">No upcoming appointments today</p>
+                <p className="text-xs text-gray-400 mb-3">Your schedule is clear for the rest of the day.</p>
                 <button
                   onClick={() => setShowModal(true)}
-                  className="text-sm font-medium text-[#1B3A5C] hover:underline"
+                  className="text-sm font-medium text-[#1B3A5C] hover:text-[#244B75] transition-colors duration-150"
                 >
-                  Book one now →
+                  Book one now
                 </button>
               </div>
             ) : (
@@ -299,11 +266,11 @@ export default function DashboardPage() {
                     <button
                       key={appt.id}
                       onClick={() => router.push(`/dashboard/appointments/${appt.id}`)}
-                      className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 transition-colors text-left"
+                      className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 transition-colors duration-150 text-left"
                     >
                       {/* Time badge */}
                       <div className="flex-shrink-0 w-[70px] text-center bg-[#EDF2F8] rounded-lg py-1.5">
-                        <p className="text-sm font-bold text-[#1B3A5C]">
+                        <p className="text-sm font-bold text-[#0F2137]">
                           {formatTime(appt.start_time)}
                         </p>
                       </div>

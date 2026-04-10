@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { Plus, Search, X } from 'lucide-react';
 import Header from '@/components/dashboard/Header';
 import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
@@ -33,10 +34,10 @@ const SUBTYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: string }> = {
-  pending:   { label: 'Pending',   className: 'bg-yellow-100 text-yellow-700' },
-  confirmed: { label: 'Confirmed', className: 'bg-green-100 text-green-700' },
-  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-700' },
-  completed: { label: 'Completed', className: 'bg-blue-100 text-blue-700' },
+  pending:   { label: 'Pending',   className: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  confirmed: { label: 'Confirmed', className: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-50 text-red-600 border border-red-200' },
+  completed: { label: 'Completed', className: 'bg-blue-50 text-blue-700 border border-blue-200' },
 };
 
 function formatDateDisplay(dateStr: string): string {
@@ -161,34 +162,35 @@ export default function AppointmentsPage() {
 
       <div className="flex-1 p-6">
 
-        {/* Top bar */}
+        {/* Top bar — single "New Appointment" button top-right */}
         <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 font-normal">
             {loading ? 'Loading...' : `${filtered.length} appointment${filtered.length !== 1 ? 's' : ''}`}
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1B3A5C] text-white text-sm font-medium hover:bg-[#1B3A5C]/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#1B3A5C] text-white text-sm font-medium hover:bg-[#244B75] transition-colors duration-150 shadow-sm"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="w-4 h-4" />
             New Appointment
           </button>
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-5">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or phone..."
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] w-56"
-          />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or phone..."
+              className="border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] w-56 transition-colors duration-150"
+            />
+          </div>
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
           >
             <option value="">All Statuses</option>
             <option value="confirmed">Confirmed</option>
@@ -199,7 +201,7 @@ export default function AppointmentsPage() {
           <select
             value={filterPreparer}
             onChange={e => setFilterPreparer(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
           >
             <option value="">All Preparers</option>
             {preparers.map(p => (
@@ -209,7 +211,7 @@ export default function AppointmentsPage() {
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
           >
             <option value="">All Types</option>
             <option value="personal_tax">Personal Tax</option>
@@ -221,7 +223,7 @@ export default function AppointmentsPage() {
               type="date"
               value={filterDateStart}
               onChange={e => setFilterDateStart(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
               aria-label="From date"
             />
             <span className="text-gray-400 text-xs">–</span>
@@ -229,7 +231,7 @@ export default function AppointmentsPage() {
               type="date"
               value={filterDateEnd}
               onChange={e => setFilterDateEnd(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
               aria-label="To date"
             />
           </div>
@@ -239,8 +241,9 @@ export default function AppointmentsPage() {
                 setSearch(''); setFilterStatus(''); setFilterPreparer('');
                 setFilterType(''); setFilterDateStart(''); setFilterDateEnd('');
               }}
-              className="text-sm text-gray-400 hover:text-gray-600 underline"
+              className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors duration-150"
             >
+              <X className="w-3.5 h-3.5" />
               Clear
             </button>
           )}
@@ -248,21 +251,21 @@ export default function AppointmentsPage() {
 
         {/* Table */}
         {loading ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-400">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-12 text-center text-gray-400">
             Loading appointments...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-12 text-center">
             <p className="text-gray-400 mb-3">No appointments found.</p>
             <button
               onClick={() => setShowModal(true)}
-              className="text-sm text-[#1B3A5C] font-medium hover:underline"
+              className="text-sm text-[#1B3A5C] font-medium hover:text-[#244B75] transition-colors duration-150"
             >
-              Book the first one →
+              Book the first one
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
             <Table headers={['Date', 'Time', 'Client', 'Type', 'Preparer', 'Status', 'Actions']}>
               {filtered.map(appt => {
                 const statusCfg = STATUS_CONFIG[appt.status] ?? STATUS_CONFIG.pending;
@@ -304,7 +307,7 @@ export default function AppointmentsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.className}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${statusCfg.className}`}>
                         {statusCfg.label}
                       </span>
                     </TableCell>
@@ -313,7 +316,7 @@ export default function AppointmentsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={e => handleReassign(appt.id, e)}
-                            className="text-xs text-[#1B3A5C] font-medium hover:underline"
+                            className="text-xs text-[#1B3A5C] font-medium hover:text-[#244B75] transition-colors duration-150"
                           >
                             Reassign
                           </button>
@@ -321,7 +324,7 @@ export default function AppointmentsPage() {
                           <button
                             onClick={e => handleCancel(appt.id, e)}
                             disabled={cancelling === appt.id}
-                            className="text-xs text-red-500 font-medium hover:underline disabled:opacity-50"
+                            className="text-xs text-red-500 font-medium hover:text-red-600 disabled:opacity-50 transition-colors duration-150"
                           >
                             {cancelling === appt.id ? 'Cancelling...' : 'Cancel'}
                           </button>

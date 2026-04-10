@@ -9,10 +9,10 @@ import type { CalendarAppt } from './calendarTypes';
 const SLOT_HEIGHT = 60;      // px per 30-min slot  (= 2 px/min)
 const PX_PER_MIN  = SLOT_HEIGHT / 30;
 
-const TYPE_ABBREV: Record<string, string> = {
-  personal_tax:          'PT',
-  corporate_tax:         'CT',
-  professional_services: 'PS',
+const TYPE_LABELS: Record<string, string> = {
+  personal_tax:          'Personal Tax',
+  corporate_tax:         'Corporate Tax',
+  professional_services: 'Professional',
 };
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -226,7 +226,7 @@ export default function WeekView({
                   const isPending  = appt.status === 'pending';
                   const isCancelled = appt.status === 'cancelled';
                   const isSelected = appt.id === selectedId;
-                  const abbrev     = TYPE_ABBREV[appt.appointment_type] ?? '';
+                  const typeLabel  = TYPE_LABELS[appt.appointment_type] ?? '';
 
                   return (
                     <button
@@ -234,9 +234,9 @@ export default function WeekView({
                       onClick={() => onSelect(appt)}
                       title={`${appt.client_name} · ${appt.appointment_type.replace(/_/g, ' ')} · ${formatTime(appt.start_time)}`}
                       className={`absolute text-left rounded-md overflow-hidden transition-all duration-150 focus:outline-none group ${
-                        isCancelled ? 'opacity-40' : 'hover:brightness-95 hover:shadow-md'
+                        isCancelled ? 'opacity-40' : 'hover:brightness-[0.97] hover:shadow-md'
                       } ${
-                        isSelected ? 'ring-2 ring-[#1B3A5C] ring-offset-1 z-20' : 'z-10 hover:z-20'
+                        isSelected ? 'ring-2 ring-[#0F2137] ring-offset-1 z-20' : 'z-10 hover:z-20'
                       }`}
                       style={{
                         top:    `${top + 1}px`,
@@ -260,17 +260,17 @@ export default function WeekView({
 
                       <div className="px-2 py-1 h-full overflow-hidden">
                         <p
-                          className="text-xs font-semibold leading-tight truncate"
+                          className="text-xs font-bold leading-tight truncate"
                           style={{ color }}
                         >
                           {appt.client_name}
                         </p>
                         {height > 38 && (
                           <p
-                            className="text-[11px] leading-tight truncate mt-0.5"
-                            style={{ color, opacity: 0.75 }}
+                            className="text-[10px] leading-tight truncate mt-0.5"
+                            style={{ color, opacity: 0.7 }}
                           >
-                            {abbrev} · {formatTime(appt.start_time)}
+                            {formatTime(appt.start_time)} · {typeLabel}
                           </p>
                         )}
                       </div>

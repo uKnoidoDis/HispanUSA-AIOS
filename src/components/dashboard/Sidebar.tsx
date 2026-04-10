@@ -4,14 +4,23 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { createBrowserClient } from '@/lib/supabase/client';
+import {
+  LayoutDashboard,
+  Calendar,
+  ClipboardList,
+  Clock,
+  Users,
+  LogOut,
+  Hourglass,
+} from 'lucide-react';
 
 const navItems = [
-  { href: '/dashboard',              label: 'Overview',      icon: '📊' },
-  { href: '/dashboard/calendar',     label: 'Calendar',      icon: '📆' },
-  { href: '/dashboard/appointments', label: 'Appointments',  icon: '📋' },
-  { href: '/dashboard/pending',      label: 'Pending',       icon: '⏳', showBadge: true },
-  { href: '/dashboard/availability', label: 'Availability',  icon: '🗓️' },
-  { href: '/dashboard/clients',      label: 'Clients',       icon: '👥' },
+  { href: '/dashboard',              label: 'Overview',      icon: LayoutDashboard },
+  { href: '/dashboard/calendar',     label: 'Calendar',      icon: Calendar },
+  { href: '/dashboard/appointments', label: 'Appointments',  icon: ClipboardList },
+  { href: '/dashboard/pending',      label: 'Pending',       icon: Hourglass, showBadge: true },
+  { href: '/dashboard/availability', label: 'Availability',  icon: Clock },
+  { href: '/dashboard/clients',      label: 'Clients',       icon: Users },
 ];
 
 export default function Sidebar() {
@@ -22,21 +31,18 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
 
-  // Fetch user name from Supabase auth
   useEffect(() => {
     const supabase = createBrowserClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.user_metadata?.name) {
         setUserName(user.user_metadata.name);
       } else if (user?.email) {
-        // Fallback to email prefix, capitalized
         const prefix = user.email.split('@')[0];
         setUserName(prefix.charAt(0).toUpperCase() + prefix.slice(1));
       }
     });
   }, []);
 
-  // Poll pending count every 30 seconds
   useEffect(() => {
     async function fetchCount() {
       try {
@@ -46,21 +52,16 @@ export default function Sidebar() {
           setPendingCount(data.count ?? 0);
         }
       } catch {
-        // Non-critical — just don't show a badge
+        // Non-critical
       }
     }
-
     fetchCount();
     const interval = setInterval(fetchCount, 30_000);
     return () => clearInterval(interval);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setMobileOpen(false);
@@ -79,7 +80,6 @@ export default function Sidebar() {
     router.refresh();
   }, [router]);
 
-  // Time-based greeting
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
@@ -106,6 +106,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map(item => {
+          const Icon = item.icon;
           const isActive =
             item.href === '/dashboard'
               ? pathname === '/dashboard'
@@ -118,14 +119,14 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors
+                flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150
                 ${isActive
-                  ? 'bg-[#1B3A5C] text-white'
-                  : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-white/10 text-white border-l-[3px] border-l-[#D4932A] ml-0 pl-[9px]'
+                  : 'text-gray-400 hover:bg-white/[0.07] hover:text-gray-200 border-l-[3px] border-l-transparent ml-0 pl-[9px]'
                 }
               `}
             >
-              <span className="text-base flex-shrink-0">{item.icon}</span>
+              <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
               <span className="flex-1">{item.label}</span>
               {item.showBadge && count > 0 && (
                 <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#D4932A] text-white text-xs font-bold leading-none">
@@ -138,18 +139,33 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-white/10 space-y-1">
+      <div className="px-3 py-4 border-t border-white/10 space-y-3">
         <button
           onClick={handleLogout}
           disabled={loggingOut}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
-                     text-gray-400 hover:bg-white/10 hover:text-white transition-colors
+                     text-gray-400 hover:bg-white/[0.07] hover:text-gray-200 transition-all duration-150
                      disabled:opacity-50 disabled:cursor-not-allowed text-left"
         >
-          <span className="text-base flex-shrink-0">🚪</span>
-          <span>{loggingOut ? 'Signing out…' : 'Sign out'}</span>
+          <LogOut className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
+          <span>{loggingOut ? 'Signing out...' : 'Sign out'}</span>
         </button>
-        <p className="text-[10px] text-gray-600 px-3 pt-1">Dark Horse Systems</p>
+
+        {/* DHS branding */}
+        <div className="flex items-center gap-2 px-3 pt-1">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="w-4 h-4 text-gray-500 flex-shrink-0"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M22 9s-4-3-7-1c-2 1.3-3 4-3 4s-1.5-3.5-5-4C4 7.5 2 10 2 10s2 4 5 5c2 .7 4-.5 4-.5s0 3 2 5c2.5 2.5 6 1 6 1s-1-3-3-5c-1.2-1.2-2.5-1.5-2.5-1.5s2.5-1 4-3c2-2.5 1.5-5 1.5-5z" />
+          </svg>
+          <span className="text-[11px] text-gray-500 font-medium">Dark Horse Systems</span>
+        </div>
       </div>
     </>
   );
@@ -159,7 +175,7 @@ export default function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-40 lg:hidden p-2 rounded-lg bg-[#0F2137] text-white shadow-lg hover:bg-[#1B3A5C] transition-colors"
+        className="fixed top-3 left-3 z-40 lg:hidden p-2 rounded-lg bg-[#0F2137] text-white shadow-lg hover:bg-[#1B3A5C] transition-colors duration-150"
         aria-label="Open navigation"
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,10 +199,9 @@ export default function Sidebar() {
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        {/* Close button */}
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors duration-150"
           aria-label="Close navigation"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
