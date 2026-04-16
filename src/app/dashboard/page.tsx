@@ -122,7 +122,7 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-[#0F2137]">
+              <h1 className="text-xl font-bold text-[#03296A]">
                 {getGreeting()}
               </h1>
               <p className="text-sm text-gray-500 mt-0.5 font-normal">{todayFormatted}</p>
@@ -138,9 +138,9 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total today */}
             <div className="bg-white rounded-lg border border-gray-200 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative">
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#0F2137]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#03296A]" />
               <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Today</p>
-              <p className="text-3xl font-bold text-[#0F2137]">
+              <p className="text-3xl font-bold text-[#03296A]">
                 {loading ? '—' : total}
               </p>
               <p className="text-xs text-gray-400 mt-1">appointments</p>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
           {/* ── Upcoming Appointments ───────────────────────────────────── */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-[#0F2137] uppercase tracking-wide">
+              <h2 className="text-sm font-bold text-[#03296A] uppercase tracking-wide">
                 Upcoming Today
               </h2>
               <Link
@@ -270,7 +270,7 @@ export default function DashboardPage() {
                     >
                       {/* Time badge */}
                       <div className="flex-shrink-0 w-[70px] text-center bg-[#EDF2F8] rounded-lg py-1.5">
-                        <p className="text-sm font-bold text-[#0F2137]">
+                        <p className="text-sm font-bold text-[#03296A]">
                           {formatTime(appt.start_time)}
                         </p>
                       </div>

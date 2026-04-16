@@ -32,7 +32,7 @@ export default async function ClientsPage({
     <>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h2 className="text-lg font-bold text-[#0F2137]">Clients</h2>
+        <h2 className="text-lg font-bold text-[#03296A]">Clients</h2>
         <p className="text-sm text-gray-500 font-normal">
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',

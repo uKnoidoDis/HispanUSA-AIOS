@@ -37,11 +37,11 @@ function LoginForm() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.12)] p-8">
-      <h2 className="text-lg font-bold text-[#0F2137] mb-1">
+    <div className="bg-[#03296A] rounded-xl shadow-[0_8px_32px_rgba(3,41,106,0.25)] p-8">
+      <h2 className="text-lg font-bold text-white mb-1">
         Sign in
       </h2>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-blue-200/60 mb-6">
         Staff access only
       </p>
 
@@ -49,7 +49,7 @@ function LoginForm() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-white mb-1"
           >
             Email
           </label>
@@ -60,8 +60,8 @@ function LoginForm() {
             required
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-[4px] text-sm
-                       focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C]
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm bg-white text-gray-900
+                       focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white
                        placeholder:text-gray-400 transition-colors duration-150"
             placeholder="you@hispanusa.com"
           />
@@ -70,7 +70,7 @@ function LoginForm() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-white mb-1"
           >
             Password
           </label>
@@ -81,15 +81,15 @@ function LoginForm() {
             required
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-[4px] text-sm
-                       focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C]
-                       transition-colors duration-150"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm bg-white text-gray-900
+                       focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white
+                       placeholder:text-gray-400 transition-colors duration-150"
           />
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="bg-red-500/20 border border-red-400/30 rounded-md px-3 py-2">
+            <p className="text-sm text-red-100">{error}</p>
           </div>
         )}
 
@@ -97,8 +97,8 @@ function LoginForm() {
           type="submit"
           disabled={loading}
           className="w-full py-2.5 px-4 rounded-md text-sm font-semibold text-white
-                     bg-[#1B3A5C] hover:bg-[#244B75] disabled:opacity-60 disabled:cursor-not-allowed
-                     transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:ring-offset-2
+                     bg-[#C1282D] hover:bg-[#a82226] disabled:opacity-60 disabled:cursor-not-allowed
+                     transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#C1282D]/40 focus:ring-offset-2 focus:ring-offset-[#03296A]
                      shadow-sm"
         >
           {loading ? 'Signing in...' : 'Sign in'}
@@ -110,26 +110,27 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-[#0F2137] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="w-full max-w-sm">
 
-        {/* Logo */}
+        {/* Logo — large and prominent */}
         <div className="text-center mb-8">
-          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={220} height={73} style={{ height: 'auto' }} className="mx-auto mb-2" />
-          <p className="text-sm text-blue-300/70 mt-1">AIOS Dashboard</p>
+          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={300} height={100} style={{ height: 'auto' }} className="mx-auto mb-3" priority />
+          <p className="text-sm font-medium text-[#03296A] mt-1">AIOS Dashboard</p>
         </div>
 
         <Suspense fallback={
-          <div className="bg-white rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.12)] p-8 text-center text-sm text-gray-400">
+          <div className="bg-[#03296A] rounded-xl shadow-[0_8px_32px_rgba(3,41,106,0.25)] p-8 text-center text-sm text-blue-200/60">
             Loading...
           </div>
         }>
           <LoginForm />
         </Suspense>
 
-        {/* DHS Footer */}
-        <div className="flex items-center justify-center mt-6">
-          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={100} height={33} style={{ height: 'auto', opacity: 0.3 }} />
+        {/* DHS Footer — visible on white background */}
+        <div className="flex flex-col items-center mt-8">
+          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={150} height={50} style={{ height: 'auto' }} />
+          <p className="text-[11px] text-[#03296A]/50 font-medium mt-1">Powered by Dark Horse Systems</p>
         </div>
       </div>
     </div>

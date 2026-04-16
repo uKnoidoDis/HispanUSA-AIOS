@@ -119,7 +119,7 @@ function wrapEmail(bodyHtml: string): string {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:20px 0;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;">
-        <tr><td style="background-color:#0F2137;padding:28px 32px;text-align:center;">
+        <tr><td style="background-color:#03296A;padding:28px 32px;text-align:center;">
           <img src="https://hispan-usa-aios.vercel.app/hispanusa-logo.png" alt="HispanUSA" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto;" />
         </td></tr>
         <tr><td style="padding:32px 32px 24px;">

@@ -232,7 +232,7 @@ export default function CalendarView() {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <h2 className="text-base font-bold text-[#0F2137] min-w-0">
+          <h2 className="text-base font-bold text-[#03296A] min-w-0">
             {headerLabel}
           </h2>
           {taxSeason && (
@@ -253,7 +253,7 @@ export default function CalendarView() {
                 i > 0 ? 'border-l border-gray-300' : ''
               } ${
                 viewMode === mode
-                  ? 'bg-[#0F2137] text-white'
+                  ? 'bg-[#03296A] text-white'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >

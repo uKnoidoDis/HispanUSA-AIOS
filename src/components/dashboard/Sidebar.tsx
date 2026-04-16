@@ -154,7 +154,7 @@ export default function Sidebar() {
 
         {/* DHS branding */}
         <div className="px-3 pt-1">
-          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={110} height={37} style={{ height: 'auto', opacity: 0.7 }} />
+          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={135} height={45} style={{ height: 'auto' }} />
         </div>
       </div>
     </>
@@ -165,7 +165,7 @@ export default function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-40 lg:hidden p-2 rounded-lg bg-[#0F2137] text-white shadow-lg hover:bg-[#1B3A5C] transition-colors duration-150"
+        className="fixed top-3 left-3 z-40 lg:hidden p-2 rounded-lg bg-[#03296A] text-white shadow-lg hover:bg-[#1B3A5C] transition-colors duration-150"
         aria-label="Open navigation"
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@ export default function Sidebar() {
       {/* Mobile drawer */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-[#0F2137] text-white flex flex-col
+          fixed inset-y-0 left-0 z-50 w-64 bg-[#03296A] text-white flex flex-col
           transform transition-transform duration-200 ease-in-out lg:hidden
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
@@ -202,7 +202,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 min-h-screen bg-[#0F2137] text-white flex-col flex-shrink-0">
+      <aside className="hidden lg:flex w-60 min-h-screen bg-[#03296A] text-white flex-col flex-shrink-0">
         {sidebarContent}
       </aside>
     </>

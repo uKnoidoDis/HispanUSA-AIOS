@@ -236,7 +236,7 @@ export default function WeekView({
                       className={`absolute text-left rounded-md overflow-hidden transition-all duration-150 focus:outline-none group ${
                         isCancelled ? 'opacity-40' : 'hover:brightness-[0.97] hover:shadow-md'
                       } ${
-                        isSelected ? 'ring-2 ring-[#0F2137] ring-offset-1 z-20' : 'z-10 hover:z-20'
+                        isSelected ? 'ring-2 ring-[#03296A] ring-offset-1 z-20' : 'z-10 hover:z-20'
                       }`}
                       style={{
                         top:    `${top + 1}px`,

@@ -92,7 +92,7 @@ export default function PendingPage() {
       {/* ── Page header ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-lg font-bold text-[#0F2137]">Pending Approvals</h1>
+          <h1 className="text-lg font-bold text-[#03296A]">Pending Approvals</h1>
           <p className="text-sm text-gray-500 mt-0.5 font-normal">
             {loading ? 'Loading...' : `${items.length} request${items.length !== 1 ? 's' : ''} awaiting review`}
           </p>

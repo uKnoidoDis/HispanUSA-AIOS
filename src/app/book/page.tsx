@@ -313,7 +313,7 @@ export default function BookPage() {
     <div className="min-h-screen bg-[#EDF2F8] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="bg-[#0F2137] text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <header className="bg-[#03296A] text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div>
           <Image src="/hispanusa-logo.png" alt="HispanUSA" width={180} height={60} style={{ height: 'auto' }} />
         </div>
@@ -338,11 +338,11 @@ export default function BookPage() {
                   <div className="flex flex-col items-center">
                     <div
                       className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        i < currentStepNum ? 'bg-[#0F2137]' : i === currentStepNum ? 'bg-[#D4932A] ring-4 ring-[#D4932A]/20' : 'bg-gray-300'
+                        i < currentStepNum ? 'bg-[#03296A]' : i === currentStepNum ? 'bg-[#D4932A] ring-4 ring-[#D4932A]/20' : 'bg-gray-300'
                       }`}
                     />
                     <span className={`text-[10px] mt-1.5 font-medium transition-colors duration-300 ${
-                      i <= currentStepNum ? 'text-[#0F2137]' : 'text-gray-400'
+                      i <= currentStepNum ? 'text-[#03296A]' : 'text-gray-400'
                     }`}>
                       {t.stepLabels[i + 1]}
                     </span>
@@ -350,7 +350,7 @@ export default function BookPage() {
                   {/* Connector line */}
                   {i < totalSteps - 1 && (
                     <div className={`flex-1 h-[2px] mx-1 transition-all duration-300 ${
-                      i < currentStepNum ? 'bg-[#0F2137]' : 'bg-gray-200'
+                      i < currentStepNum ? 'bg-[#03296A]' : 'bg-gray-200'
                     }`} />
                   )}
                 </React.Fragment>
@@ -374,13 +374,13 @@ export default function BookPage() {
               <div className="flex flex-col gap-4">
                 <button
                   onClick={() => selectLanguage('en')}
-                  className="w-full py-5 px-6 bg-white rounded-xl border-2 border-gray-200 hover:border-[#1B3A5C] hover:bg-[#EDF2F8] transition-all duration-200 text-xl font-bold text-[#0F2137] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-md hover:-translate-y-0.5"
+                  className="w-full py-5 px-6 bg-white rounded-xl border-2 border-gray-200 hover:border-[#1B3A5C] hover:bg-[#EDF2F8] transition-all duration-200 text-xl font-bold text-[#03296A] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-md hover:-translate-y-0.5"
                 >
                   English
                 </button>
                 <button
                   onClick={() => selectLanguage('es')}
-                  className="w-full py-5 px-6 bg-[#0F2137] rounded-xl border-2 border-[#0F2137] hover:bg-[#1B3A5C] transition-all duration-200 text-xl font-bold text-white shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  className="w-full py-5 px-6 bg-[#03296A] rounded-xl border-2 border-[#03296A] hover:bg-[#1B3A5C] transition-all duration-200 text-xl font-bold text-white shadow-sm hover:shadow-md hover:-translate-y-0.5"
                 >
                   Español
                 </button>
@@ -391,7 +391,7 @@ export default function BookPage() {
           {/* ── STEP: Type ─────────────────────────────────────────────────── */}
           {step === 'type' && (
             <div>
-              <h2 className="text-xl font-bold text-[#0F2137] mb-6">{t.stepType}</h2>
+              <h2 className="text-xl font-bold text-[#03296A] mb-6">{t.stepType}</h2>
               <div className="flex flex-col gap-3">
                 {(['personal_tax', 'corporate_tax', 'professional_services'] as ApptType[]).map(type => (
                   <TypeCard
@@ -473,7 +473,7 @@ export default function BookPage() {
           {/* ── STEP: Contact ──────────────────────────────────────────────── */}
           {step === 'contact' && (
             <div>
-              <h2 className="text-xl font-bold text-[#0F2137] mb-6">{t.stepContact}</h2>
+              <h2 className="text-xl font-bold text-[#03296A] mb-6">{t.stepContact}</h2>
 
               {/* Summary chip */}
               {booking.date && booking.time && booking.appointmentType && (
@@ -567,7 +567,7 @@ export default function BookPage() {
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Check className="w-10 h-10 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-[#0F2137] mb-3">{t.successTitle}</h2>
+              <h2 className="text-2xl font-bold text-[#03296A] mb-3">{t.successTitle}</h2>
               <p className="text-gray-600 leading-relaxed mb-8">{t.successBody}</p>
 
               {/* Summary */}
@@ -629,8 +629,9 @@ export default function BookPage() {
         <p className="text-xs text-gray-400">
           HispanUSA Accounting &amp; Tax Services · (954) 934-0194
         </p>
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={100} height={33} style={{ height: 'auto', opacity: 0.4 }} />
+        <div className="flex flex-col items-center mt-2">
+          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={130} height={43} style={{ height: 'auto' }} />
+          <p className="text-[10px] text-[#03296A]/40 font-medium mt-0.5">Powered by Dark Horse Systems</p>
         </div>
       </footer>
     </div>
@@ -660,21 +661,21 @@ function TypeCard({
       onClick={onClick}
       className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 text-left transition-all duration-200 ${
         selected
-          ? 'border-[#0F2137] bg-[#EDF2F8] shadow-sm'
+          ? 'border-[#03296A] bg-[#EDF2F8] shadow-sm'
           : 'border-gray-200 bg-white hover:border-[#1B3A5C]/40 hover:shadow-md hover:-translate-y-[2px]'
       }`}
     >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-        selected ? 'bg-[#0F2137] text-white' : 'bg-gray-100 text-gray-600'
+        selected ? 'bg-[#03296A] text-white' : 'bg-gray-100 text-gray-600'
       }`}>
         {icons[type]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`font-bold text-base ${selected ? 'text-[#0F2137]' : 'text-gray-800'}`}>{label}</p>
+        <p className={`font-bold text-base ${selected ? 'text-[#03296A]' : 'text-gray-800'}`}>{label}</p>
         <p className="text-sm text-gray-500 truncate">{desc}</p>
       </div>
       <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
-        selected ? 'bg-[#0F2137]/10 text-[#0F2137]' : 'bg-gray-100 text-gray-500'
+        selected ? 'bg-[#03296A]/10 text-[#03296A]' : 'bg-gray-100 text-gray-500'
       }`}>
         <Clock className="w-3 h-3" />
         {duration}
@@ -746,7 +747,7 @@ function DateStep({
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-[#0F2137] mb-5">{t.stepDate}</h2>
+      <h2 className="text-xl font-bold text-[#03296A] mb-5">{t.stepDate}</h2>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Month nav */}
@@ -796,8 +797,8 @@ function DateStep({
                   onClick={() => onSelect(dateStr)}
                   className={`
                     aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-all duration-150 relative
-                    ${isSel      ? 'bg-[#0F2137] text-white font-bold shadow-sm' : ''}
-                    ${!isSel && isAvail && !isPast ? 'text-gray-800 hover:bg-[#EDF2F8] hover:text-[#0F2137] cursor-pointer' : ''}
+                    ${isSel      ? 'bg-[#03296A] text-white font-bold shadow-sm' : ''}
+                    ${!isSel && isAvail && !isPast ? 'text-gray-800 hover:bg-[#EDF2F8] hover:text-[#03296A] cursor-pointer' : ''}
                     ${isPast || !isAvail ? 'text-gray-300 cursor-not-allowed' : ''}
                   `}
                 >
@@ -850,7 +851,7 @@ function TimeStep({
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-[#0F2137] mb-1">{t.stepTime}</h2>
+      <h2 className="text-xl font-bold text-[#03296A] mb-1">{t.stepTime}</h2>
       <p className="text-sm text-gray-500 mb-5">{displayDate}</p>
 
       {loading ? (
