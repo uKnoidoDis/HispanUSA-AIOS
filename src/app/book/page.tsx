@@ -630,8 +630,8 @@ export default function BookPage() {
           HispanUSA Accounting &amp; Tax Services · (954) 934-0194
         </p>
         <div className="flex flex-col items-center mt-2">
-          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={130} height={43} style={{ height: 'auto' }} />
-          <p className="text-[10px] text-[#03296A]/40 font-medium mt-0.5">Powered by Dark Horse Systems</p>
+          <Image src="/dhs-logo-dark.png" alt="Dark Horse Systems" width={130} height={43} style={{ height: 'auto' }} />
+          <p className="text-[10px] text-[#111827] font-medium mt-0.5">Powered by Dark Horse Systems</p>
         </div>
       </footer>
     </div>

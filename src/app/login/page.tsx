@@ -41,7 +41,7 @@ function LoginForm() {
       <h2 className="text-lg font-bold text-white mb-1">
         Sign in
       </h2>
-      <p className="text-sm text-blue-200/60 mb-6">
+      <p className="text-sm text-[#C1282D] font-medium mb-6">
         Staff access only
       </p>
 
@@ -111,11 +111,11 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md">
 
-        {/* Logo — large and prominent */}
+        {/* Logo — large and dominant */}
         <div className="text-center mb-8">
-          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={300} height={100} style={{ height: 'auto' }} className="mx-auto mb-3" priority />
+          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={440} height={147} style={{ height: 'auto' }} className="mx-auto mb-3" priority />
           <p className="text-sm font-medium text-[#03296A] mt-1">AIOS Dashboard</p>
         </div>
 
@@ -127,10 +127,10 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
 
-        {/* DHS Footer — visible on white background */}
+        {/* DHS Footer — dark logo for white background */}
         <div className="flex flex-col items-center mt-8">
-          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={150} height={50} style={{ height: 'auto' }} />
-          <p className="text-[11px] text-[#03296A]/50 font-medium mt-1">Powered by Dark Horse Systems</p>
+          <Image src="/dhs-logo-dark.png" alt="Dark Horse Systems" width={150} height={50} style={{ height: 'auto' }} />
+          <p className="text-[11px] text-[#111827] font-medium mt-1">Powered by Dark Horse Systems</p>
         </div>
       </div>
     </div>
