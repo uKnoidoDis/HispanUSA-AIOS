@@ -92,16 +92,16 @@ export default function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-4 py-4 border-b border-white/10">
-        <div className="bg-white rounded-md px-3 py-2.5 flex items-center justify-center">
-          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={140} height={47} style={{ height: 'auto' }} />
+        <div className="bg-white rounded-md px-3 py-3 flex items-center justify-center">
+          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={200} height={67} style={{ width: '100%', height: 'auto' }} />
         </div>
-        <p className="text-[11px] text-white mt-2 px-2">AIOS Dashboard</p>
+        <p className="text-[11px] text-[#C1282D] font-semibold mt-2 px-2">AIOS Dashboard</p>
       </div>
 
       {/* User welcome */}
       {userName && (
         <div className="px-6 py-3 border-b border-white/10">
-          <p className="text-xs text-white/70">{greeting},</p>
+          <p className="text-xs text-[#C1282D] font-semibold">{greeting},</p>
           <p className="text-sm font-semibold text-white truncate">{userName}</p>
         </div>
       )}
