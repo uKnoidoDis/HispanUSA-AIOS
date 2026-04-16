@@ -138,7 +138,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total today */}
             <div className="bg-white rounded-lg border border-gray-200 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative">
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#D4932A]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#0F2137]" />
               <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Today</p>
               <p className="text-3xl font-bold text-[#0F2137]">
                 {loading ? '—' : total}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                   {loading ? '—' : pendingCount}
                 </p>
                 {pendingCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold uppercase tracking-wide">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold uppercase tracking-wide animate-pulse">
                     Review
                   </span>
                 )}
@@ -182,9 +182,9 @@ export default function DashboardPage() {
 
             {/* Completed */}
             <div className="bg-white rounded-lg border border-gray-200 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden relative">
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gray-300" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#D4932A]" />
               <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Completed</p>
-              <p className="text-3xl font-bold text-[#3B82F6]">
+              <p className="text-3xl font-bold text-[#D4932A]">
                 {loading ? '—' : completed}
               </p>
               <p className="text-xs text-gray-400 mt-1">finished today</p>

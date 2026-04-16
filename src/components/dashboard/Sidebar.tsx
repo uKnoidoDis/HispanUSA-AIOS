@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { createBrowserClient } from '@/lib/supabase/client';
@@ -91,8 +92,8 @@ export default function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/10">
-        <h1 className="text-lg font-bold text-white tracking-tight">HispanUSA</h1>
-        <p className="text-[11px] text-blue-300/60 mt-0.5">AIOS Dashboard</p>
+        <Image src="/hispanusa-logo.png" alt="HispanUSA" width={140} height={47} style={{ height: 'auto' }} />
+        <p className="text-[11px] text-blue-300/60 mt-1.5">AIOS Dashboard</p>
       </div>
 
       {/* User welcome */}
@@ -152,19 +153,8 @@ export default function Sidebar() {
         </button>
 
         {/* DHS branding */}
-        <div className="flex items-center gap-2 px-3 pt-1">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="w-4 h-4 text-gray-500 flex-shrink-0"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M22 9s-4-3-7-1c-2 1.3-3 4-3 4s-1.5-3.5-5-4C4 7.5 2 10 2 10s2 4 5 5c2 .7 4-.5 4-.5s0 3 2 5c2.5 2.5 6 1 6 1s-1-3-3-5c-1.2-1.2-2.5-1.5-2.5-1.5s2.5-1 4-3c2-2.5 1.5-5 1.5-5z" />
-          </svg>
-          <span className="text-[11px] text-gray-500 font-medium">Dark Horse Systems</span>
+        <div className="px-3 pt-1">
+          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={110} height={37} style={{ height: 'auto', opacity: 0.7 }} />
         </div>
       </div>
     </>

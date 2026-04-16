@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Check, Phone, Mail, User, Clock, Calendar, FileText, Briefcase } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -314,8 +315,7 @@ export default function BookPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="bg-[#0F2137] text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">HispanUSA</h1>
-          <p className="text-xs text-blue-200/70 mt-0.5">{t.subtitle}</p>
+          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={180} height={60} style={{ height: 'auto' }} />
         </div>
         {step !== 'language' && step !== 'submitted' && (
           <button
@@ -368,11 +368,7 @@ export default function BookPage() {
           {step === 'language' && (
             <div className="text-center">
               <div className="mb-10">
-                <div className="w-16 h-16 bg-[#0F2137] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Calendar className="w-8 h-8 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-[#0F2137]">{t.header}</h2>
-                <p className="text-gray-500 mt-1">{t.subtitle}</p>
+                <Image src="/hispanusa-logo.png" alt="HispanUSA" width={200} height={67} style={{ height: 'auto' }} className="mx-auto mb-4" />
               </div>
               <p className="text-lg font-semibold text-gray-700 mb-6">{t.langPrompt}</p>
               <div className="flex flex-col gap-4">
@@ -633,11 +629,8 @@ export default function BookPage() {
         <p className="text-xs text-gray-400">
           HispanUSA Accounting &amp; Tax Services · (954) 934-0194
         </p>
-        <div className="flex items-center justify-center gap-1.5 mt-1.5">
-          <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3 text-gray-300 flex-shrink-0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 9s-4-3-7-1c-2 1.3-3 4-3 4s-1.5-3.5-5-4C4 7.5 2 10 2 10s2 4 5 5c2 .7 4-.5 4-.5s0 3 2 5c2.5 2.5 6 1 6 1s-1-3-3-5c-1.2-1.2-2.5-1.5-2.5-1.5s2.5-1 4-3c2-2.5 1.5-5 1.5-5z" />
-          </svg>
-          <span className="text-[10px] text-gray-300 font-medium">Dark Horse Systems</span>
+        <div className="flex items-center justify-center gap-1.5 mt-2">
+          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={100} height={33} style={{ height: 'auto', opacity: 0.4 }} />
         </div>
       </footer>
     </div>

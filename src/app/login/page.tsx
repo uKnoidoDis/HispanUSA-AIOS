@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, Suspense } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 
@@ -114,9 +115,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            HispanUSA
-          </h1>
+          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={220} height={73} style={{ height: 'auto' }} className="mx-auto mb-2" />
           <p className="text-sm text-blue-300/70 mt-1">AIOS Dashboard</p>
         </div>
 
@@ -129,19 +128,8 @@ export default function LoginPage() {
         </Suspense>
 
         {/* DHS Footer */}
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="w-3.5 h-3.5 text-blue-300/30 flex-shrink-0"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M22 9s-4-3-7-1c-2 1.3-3 4-3 4s-1.5-3.5-5-4C4 7.5 2 10 2 10s2 4 5 5c2 .7 4-.5 4-.5s0 3 2 5c2.5 2.5 6 1 6 1s-1-3-3-5c-1.2-1.2-2.5-1.5-2.5-1.5s2.5-1 4-3c2-2.5 1.5-5 1.5-5z" />
-          </svg>
-          <span className="text-[11px] text-blue-300/30 font-medium">Dark Horse Systems</span>
+        <div className="flex items-center justify-center mt-6">
+          <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={100} height={33} style={{ height: 'auto', opacity: 0.3 }} />
         </div>
       </div>
     </div>

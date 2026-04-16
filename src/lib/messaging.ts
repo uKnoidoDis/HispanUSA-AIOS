@@ -116,20 +116,33 @@ function wrapEmail(bodyHtml: string): string {
   <meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;">
-    <div style="background:#1B3A5C;padding:24px 32px;">
-      <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:bold;">HispanUSA</h1>
-      <p style="margin:4px 0 0;color:#93c5fd;font-size:13px;">Accounting &amp; Tax Services</p>
-    </div>
-    <div style="padding:32px 32px 24px;">
-      ${bodyHtml}
-    </div>
-    <div style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 32px;text-align:center;">
-      <p style="margin:0;color:#6b7280;font-size:12px;">HispanUSA Accounting &amp; Tax Services</p>
-      <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">${OFFICE_ADDRESS}</p>
-      <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">&#128222; ${OFFICE_PHONE}</p>
-    </div>
-  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:20px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;">
+        <tr><td style="background-color:#0F2137;padding:28px 32px;text-align:center;">
+          <img src="https://hispan-usa-aios.vercel.app/hispanusa-logo.png" alt="HispanUSA" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto;" />
+        </td></tr>
+        <tr><td style="padding:32px 32px 24px;">
+          ${bodyHtml}
+        </td></tr>
+        <tr><td style="border-top:1px solid #e5e7eb;padding:24px 32px;text-align:center;background-color:#f9fafb;">
+          <p style="margin:0;color:#374151;font-size:13px;font-weight:bold;">HispanUSA Accounting &amp; Tax Services</p>
+          <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">8050 North University Drive, Suite #206, Tamarac, FL 33321</p>
+          <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Phone: ${OFFICE_PHONE} | Website: <a href="https://hispanusa.com" style="color:#1B3A5C;text-decoration:none;">hispanusa.com</a></p>
+          <div style="margin:16px 0 0;padding-top:12px;border-top:1px solid #e5e7eb;">
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
+              <td style="vertical-align:middle;padding-right:6px;">
+                <img src="https://hispan-usa-aios.vercel.app/dhs-logo.png" alt="Dark Horse Systems" width="60" style="display:block;max-width:60px;height:auto;opacity:0.7;" />
+              </td>
+              <td style="vertical-align:middle;">
+                <span style="font-size:11px;color:#9ca3af;">Powered by Dark Horse Systems</span>
+              </td>
+            </tr></table>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
 </html>`;
 }
