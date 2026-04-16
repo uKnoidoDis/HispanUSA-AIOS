@@ -91,15 +91,17 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/10">
-        <Image src="/hispanusa-logo.png" alt="HispanUSA" width={140} height={47} style={{ height: 'auto' }} />
-        <p className="text-[11px] text-blue-300/60 mt-1.5">AIOS Dashboard</p>
+      <div className="px-4 py-4 border-b border-white/10">
+        <div className="bg-white rounded-md px-3 py-2.5 flex items-center justify-center">
+          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={140} height={47} style={{ height: 'auto' }} />
+        </div>
+        <p className="text-[11px] text-white mt-2 px-2">AIOS Dashboard</p>
       </div>
 
       {/* User welcome */}
       {userName && (
         <div className="px-6 py-3 border-b border-white/10">
-          <p className="text-xs text-gray-400">{greeting},</p>
+          <p className="text-xs text-white/70">{greeting},</p>
           <p className="text-sm font-semibold text-white truncate">{userName}</p>
         </div>
       )}
@@ -153,7 +155,7 @@ export default function Sidebar() {
         </button>
 
         {/* DHS branding */}
-        <div className="px-3 pt-1">
+        <div className="flex justify-center pt-1">
           <Image src="/dhs-logo.png" alt="Dark Horse Systems" width={135} height={45} style={{ height: 'auto' }} />
         </div>
       </div>
