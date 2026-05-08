@@ -22,6 +22,7 @@ export async function sendEmail(params: {
   const { data, error } = await client.emails.send({
     from,
     to: params.to,
+    replyTo: 'info@hispanusa.com',
     subject: params.subject,
     html: params.html,
   });
