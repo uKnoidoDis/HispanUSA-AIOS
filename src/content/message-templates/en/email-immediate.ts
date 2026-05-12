@@ -12,7 +12,8 @@ const emailImmediateEn: EmailTemplate = {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:20px 0;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;">
-        <tr><td style="background-color:#03296A;padding:28px 40px;text-align:center;">
+        <tr><td style="background-color:#03296A;height:8px;line-height:8px;font-size:0;padding:0;">&nbsp;</td></tr>
+        <tr><td style="background-color:#ffffff;padding:28px 40px;text-align:center;">
           <img src="https://hispan-usa-aios.vercel.app/hispanusa-logo.png" alt="HispanUSA" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto;" />
         </td></tr>
         <tr><td style="padding:40px;">
@@ -37,12 +38,12 @@ const emailImmediateEn: EmailTemplate = {
           <p style="margin:0;color:#374151;font-size:13px;font-weight:bold;">HispanUSA Accounting &amp; Tax Services</p>
           <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">8050 North University Drive, Suite #206, Tamarac, FL 33321</p>
           <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Phone: 954-934-0194 | Website: <a href="https://hispanusa.com" style="color:#1B3A5C;text-decoration:none;">hispanusa.com</a></p>
-          <table cellpadding="0" cellspacing="0" style="margin:12px auto 0;border-top:1px solid #e5e7eb;padding-top:12px;"><tr>
-            <td style="vertical-align:middle;padding:12px 6px 0 0;">
-              <img src="https://hispan-usa-aios.vercel.app/dhs-logo.png" alt="Dark Horse Systems" width="60" style="display:block;max-width:60px;height:auto;opacity:0.7;" />
+          <table cellpadding="0" cellspacing="0" style="margin:16px auto 0;border-top:1px solid #e5e7eb;padding-top:16px;"><tr>
+            <td style="vertical-align:middle;padding:0 10px 0 0;">
+              <img src="https://hispan-usa-aios.vercel.app/dhs-logo-dark.png" alt="Dark Horse Systems" width="100" style="display:block;max-width:100px;height:auto;" />
             </td>
-            <td style="vertical-align:middle;padding-top:12px;">
-              <span style="font-size:11px;color:#9ca3af;">Powered by Dark Horse Systems</span>
+            <td style="vertical-align:middle;">
+              <span style="font-size:12px;color:#111827;font-weight:600;">Powered by Dark Horse Systems</span>
             </td>
           </tr></table>
         </td></tr>
