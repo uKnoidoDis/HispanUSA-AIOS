@@ -313,10 +313,7 @@ export default function BookPage() {
     <div className="min-h-screen bg-[#EDF2F8] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="bg-[#03296A] text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
-        <div>
-          <Image src="/hispanusa-logo.png" alt="HispanUSA" width={180} height={60} style={{ height: 'auto' }} />
-        </div>
+      <header className="bg-[#03296A] text-white px-6 py-4 flex items-center justify-end flex-shrink-0">
         {step !== 'language' && step !== 'submitted' && (
           <button
             onClick={() => setBooking(b => ({ ...b, language: b.language === 'en' ? 'es' : 'en' }))}
