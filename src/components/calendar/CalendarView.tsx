@@ -335,7 +335,7 @@ export default function CalendarView() {
                 <p className="text-gray-500 mb-3">Could not load appointments.</p>
                 <button
                   onClick={fetchAppointments}
-                  className="text-sm text-[#1B3A5C] font-medium underline"
+                  className="text-sm text-[#03296A] font-medium underline"
                 >
                   Retry
                 </button>

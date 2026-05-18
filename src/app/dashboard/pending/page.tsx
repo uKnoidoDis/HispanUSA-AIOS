@@ -172,7 +172,7 @@ export default function PendingPage() {
                     {/* Name + type badge */}
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       <h3 className="font-bold text-gray-900 text-sm">{appt.client_name}</h3>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EDF2F8] text-[#1B3A5C]">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EDF2F8] text-[#03296A]">
                         {TYPE_LABELS[appt.appointment_type]}
                       </span>
                       {appt.service_subtype && (
@@ -200,14 +200,14 @@ export default function PendingPage() {
                     <div className="flex flex-wrap gap-x-4 gap-y-1">
                       <div className="flex items-center gap-1.5 text-sm text-gray-500">
                         <Phone className="w-3.5 h-3.5 text-gray-400" />
-                        <a href={`tel:${appt.client_phone}`} className="hover:text-[#1B3A5C] transition-colors duration-150">
+                        <a href={`tel:${appt.client_phone}`} className="hover:text-[#244B75] transition-colors duration-150">
                           {formatPhone(appt.client_phone)}
                         </a>
                       </div>
                       {appt.client_email && (
                         <div className="flex items-center gap-1.5 text-sm text-gray-500">
                           <Mail className="w-3.5 h-3.5 text-gray-400" />
-                          <a href={`mailto:${appt.client_email}`} className="hover:text-[#1B3A5C] transition-colors duration-150 truncate max-w-[200px]">
+                          <a href={`mailto:${appt.client_email}`} className="hover:text-[#244B75] transition-colors duration-150 truncate max-w-[200px]">
                             {appt.client_email}
                           </a>
                         </div>

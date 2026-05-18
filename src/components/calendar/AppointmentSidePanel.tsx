@@ -143,7 +143,7 @@ export default function AppointmentSidePanel({
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
         <div>
-          <h2 className="text-base font-semibold text-[#1B3A5C] truncate max-w-[240px]">
+          <h2 className="text-base font-semibold text-[#03296A] truncate max-w-[240px]">
             {appt.client_name}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -209,7 +209,7 @@ export default function AppointmentSidePanel({
               <select
                 value={preparerId}
                 onChange={e => setPreparerId(e.target.value)}
-                className="w-full appearance-none border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-transparent transition-all"
+                className="w-full appearance-none border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-transparent transition-all"
               >
                 {preparers.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -236,7 +236,7 @@ export default function AppointmentSidePanel({
               <select
                 value={status}
                 onChange={e => setStatus(e.target.value as typeof status)}
-                className="w-full appearance-none border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-transparent transition-all"
+                className="w-full appearance-none border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-transparent transition-all"
               >
                 {STATUS_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -255,7 +255,7 @@ export default function AppointmentSidePanel({
               <select
                 value={language}
                 onChange={e => setLanguage(e.target.value as 'en' | 'es')}
-                className="w-full appearance-none border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-transparent transition-all"
+                className="w-full appearance-none border border-gray-300 rounded-lg px-3 py-2.5 pr-9 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-transparent transition-all"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -274,7 +274,7 @@ export default function AppointmentSidePanel({
               onChange={e => setNotes(e.target.value)}
               rows={3}
               placeholder="Add notes…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-transparent resize-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-transparent resize-none transition-all"
             />
           </div>
         </div>
@@ -350,7 +350,7 @@ export default function AppointmentSidePanel({
             saved
               ? 'bg-green-600 text-white'
               : isDirty
-              ? 'bg-[#1B3A5C] text-white hover:bg-[#244B75] active:scale-[0.98]'
+              ? 'bg-[#03296A] text-white hover:bg-[#244B75] active:scale-[0.98]'
               : 'bg-gray-100 text-gray-400 cursor-not-allowed'
           }`}
         >

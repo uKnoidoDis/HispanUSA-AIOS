@@ -82,14 +82,14 @@ export default function AvailabilityGrid({
               >
                 <div
                   className={`text-xs font-semibold uppercase tracking-wide ${
-                    isToday ? 'text-[#1B3A5C]' : 'text-gray-400'
+                    isToday ? 'text-[#03296A]' : 'text-gray-400'
                   }`}
                 >
                   {DAY_NAMES[i]}
                 </div>
                 <div
                   className={`text-sm font-bold mt-0.5 ${
-                    isToday ? 'text-[#1B3A5C]' : 'text-gray-700'
+                    isToday ? 'text-[#03296A]' : 'text-gray-700'
                   }`}
                 >
                   {format(day, 'M/d')}
@@ -228,7 +228,7 @@ function SlotCell({ slot, isLoading, isToday, preparerColor, onClick }: SlotCell
       disabled={isLoading}
       className={`
         h-10 border-r border-gray-100 last:border-r-0 w-full group
-        transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C] focus-visible:ring-offset-1
+        transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A] focus-visible:ring-offset-1
         ${isLoading ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
         ${isToday ? 'bg-[#EDF2F8]/30 hover:bg-[#EDF2F8]/70' : 'bg-white hover:bg-gray-50'}
       `}

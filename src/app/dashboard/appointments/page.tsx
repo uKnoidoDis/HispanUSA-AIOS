@@ -169,7 +169,7 @@ export default function AppointmentsPage() {
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#1B3A5C] text-white text-sm font-medium hover:bg-[#244B75] transition-colors duration-150 shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#03296A] text-white text-sm font-medium hover:bg-[#244B75] transition-colors duration-150 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             New Appointment
@@ -184,13 +184,13 @@ export default function AppointmentsPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or phone..."
-              className="border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] w-56 transition-colors duration-150"
+              className="border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] w-56 transition-colors duration-150"
             />
           </div>
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] transition-colors duration-150"
           >
             <option value="">All Statuses</option>
             <option value="confirmed">Confirmed</option>
@@ -201,7 +201,7 @@ export default function AppointmentsPage() {
           <select
             value={filterPreparer}
             onChange={e => setFilterPreparer(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] transition-colors duration-150"
           >
             <option value="">All Preparers</option>
             {preparers.map(p => (
@@ -211,7 +211,7 @@ export default function AppointmentsPage() {
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] transition-colors duration-150"
           >
             <option value="">All Types</option>
             <option value="personal_tax">Personal Tax</option>
@@ -223,7 +223,7 @@ export default function AppointmentsPage() {
               type="date"
               value={filterDateStart}
               onChange={e => setFilterDateStart(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] transition-colors duration-150"
               aria-label="From date"
             />
             <span className="text-gray-400 text-xs">–</span>
@@ -231,7 +231,7 @@ export default function AppointmentsPage() {
               type="date"
               value={filterDateEnd}
               onChange={e => setFilterDateEnd(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] transition-colors duration-150"
               aria-label="To date"
             />
           </div>
@@ -259,7 +259,7 @@ export default function AppointmentsPage() {
             <p className="text-gray-400 mb-3">No appointments found.</p>
             <button
               onClick={() => setShowModal(true)}
-              className="text-sm text-[#1B3A5C] font-medium hover:text-[#244B75] transition-colors duration-150"
+              className="text-sm text-[#03296A] font-medium hover:text-[#244B75] transition-colors duration-150"
             >
               Book the first one
             </button>
@@ -316,7 +316,7 @@ export default function AppointmentsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={e => handleReassign(appt.id, e)}
-                            className="text-xs text-[#1B3A5C] font-medium hover:text-[#244B75] transition-colors duration-150"
+                            className="text-xs text-[#03296A] font-medium hover:text-[#244B75] transition-colors duration-150"
                           >
                             Reassign
                           </button>

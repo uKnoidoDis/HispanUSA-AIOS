@@ -22,7 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           className={`
             block w-full rounded-[4px] border px-3 py-2 text-sm text-gray-900 placeholder-gray-400
-            focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C]
+            focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A]
             disabled:bg-gray-50 disabled:text-gray-500
             transition-colors duration-150
             ${error ? 'border-red-300 focus:ring-red-500/40 focus:border-red-500' : 'border-gray-300'}

@@ -222,7 +222,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white sticky top-0 z-10">
-          <h2 className="text-lg font-semibold text-[#1B3A5C]">New Appointment</h2>
+          <h2 className="text-lg font-semibold text-[#03296A]">New Appointment</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -253,7 +253,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   value={form.client_name}
                   onChange={e => set('client_name', e.target.value)}
                   placeholder="Maria Lopez"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-[#1B3A5C]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                   required
                 />
               </div>
@@ -269,8 +269,8 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   onChange={e => { set('client_phone', e.target.value); setPhoneError(''); }}
                   onBlur={handlePhoneBlur}
                   placeholder="(954) 555-0100"
-                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] ${
-                    phoneError ? 'border-red-400' : 'border-gray-300 focus:border-[#1B3A5C]'
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] ${
+                    phoneError ? 'border-red-400' : 'border-gray-300 focus:border-[#03296A]'
                   }`}
                   required
                 />
@@ -289,7 +289,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   value={form.client_email}
                   onChange={e => set('client_email', e.target.value)}
                   placeholder="maria@example.com"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-[#1B3A5C]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                 />
               </div>
 
@@ -306,7 +306,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                       onClick={() => set('language', lang)}
                       className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
                         form.language === lang
-                          ? 'bg-[#1B3A5C] text-white border-[#1B3A5C]'
+                          ? 'bg-[#03296A] text-white border-[#03296A]'
                           : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
@@ -341,7 +341,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                     }}
                     className={`flex items-center justify-between w-full px-4 py-3 rounded-lg border text-sm font-medium text-left transition-colors ${
                       form.appointment_type === value
-                        ? 'bg-[#1B3A5C] text-white border-[#1B3A5C]'
+                        ? 'bg-[#03296A] text-white border-[#03296A]'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                     }`}
                   >
@@ -373,7 +373,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   <select
                     value={form.service_subtype}
                     onChange={e => set('service_subtype', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-[#1B3A5C]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                     required
                   >
                     <option value="">Select service type...</option>
@@ -402,7 +402,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   <select
                     value={form.preparer_id}
                     onChange={e => set('preparer_id', e.target.value)}
-                    className="w-full appearance-none border border-gray-300 rounded-lg pl-8 pr-10 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-[#1B3A5C]"
+                    className="w-full appearance-none border border-gray-300 rounded-lg pl-8 pr-10 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                     required
                   >
                     <option value="">Select preparer...</option>
@@ -439,7 +439,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   value={form.date}
                   onChange={e => set('date', e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-[#1B3A5C]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                   required
                 />
               </div>
@@ -484,8 +484,8 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                                 }}
                                 className={`py-2 px-3 rounded-lg border text-xs font-medium text-center transition-colors ${
                                   isSelected
-                                    ? 'bg-[#1B3A5C] text-white border-[#1B3A5C]'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:border-[#1B3A5C] hover:bg-[#EDF2F8]'
+                                    ? 'bg-[#03296A] text-white border-[#03296A]'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:border-[#244B75] hover:bg-[#EDF2F8]'
                                 }`}
                               >
                                 {label}
@@ -510,7 +510,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                             setShowCustomTime(true);
                             set('start_time', '');
                           }}
-                          className="text-xs text-[#1B3A5C] hover:underline font-medium"
+                          className="text-xs text-[#03296A] hover:underline font-medium"
                         >
                           {hasOpenSlots ? '+ Enter a custom time (override)' : '+ Enter time'}
                         </button>
@@ -525,7 +525,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                               value={customTime}
                               onChange={e => setCustomTime(e.target.value)}
                               step="1800"
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A]"
                               required={showCustomTime}
                             />
                             {hasOpenSlots && (
@@ -565,7 +565,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                     onChange={e => setForm(f => ({ ...f, auto_send_checklist: e.target.checked }))}
                   />
                   <div className={`w-10 h-5 rounded-full transition-colors ${
-                    form.auto_send_checklist ? 'bg-[#1B3A5C]' : 'bg-gray-300'
+                    form.auto_send_checklist ? 'bg-[#03296A]' : 'bg-gray-300'
                   }`} />
                   <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
                     form.auto_send_checklist ? 'translate-x-5' : 'translate-x-0'
@@ -595,7 +595,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
               onChange={e => set('notes', e.target.value)}
               placeholder="Walk-in, phone booking, special instructions..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C] focus:border-[#1B3A5C] resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A] resize-none"
             />
           </fieldset>
 
@@ -621,7 +621,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
             form="booking-form"
             disabled={submitting}
             onClick={handleSubmit}
-            className="flex-1 py-2.5 rounded-lg bg-[#1B3A5C] text-white text-sm font-medium hover:bg-[#1B3A5C]/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 rounded-lg bg-[#03296A] text-white text-sm font-medium hover:bg-[#244B75]/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {submitting && (
               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

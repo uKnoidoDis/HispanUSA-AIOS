@@ -50,10 +50,10 @@ export default async function ClientsPage({
               name="search"
               defaultValue={search}
               placeholder="Search by name, phone, or email..."
-              className="w-full border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]/40 focus:border-[#1B3A5C] transition-colors duration-150"
+              className="w-full border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A]/40 focus:border-[#03296A] transition-colors duration-150"
             />
           </div>
-          <button type="submit" className="px-4 py-2 text-sm font-medium bg-[#1B3A5C] text-white rounded-md hover:bg-[#244B75] transition-colors duration-150 shadow-sm">
+          <button type="submit" className="px-4 py-2 text-sm font-medium bg-[#03296A] text-white rounded-md hover:bg-[#244B75] transition-colors duration-150 shadow-sm">
             Search
           </button>
         </form>
@@ -88,7 +88,7 @@ export default async function ClientsPage({
                   )}
                 </TableCell>
                 <TableCell>
-                  <Link href={`/dashboard/clients/${client.id}`} className="text-sm text-[#1B3A5C] font-medium hover:text-[#244B75] transition-colors duration-150">
+                  <Link href={`/dashboard/clients/${client.id}`} className="text-sm text-[#03296A] font-medium hover:text-[#244B75] transition-colors duration-150">
                     View
                   </Link>
                 </TableCell>

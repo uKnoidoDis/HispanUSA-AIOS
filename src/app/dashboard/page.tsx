@@ -195,7 +195,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#1B3A5C] text-white text-sm font-semibold hover:bg-[#244B75] transition-colors duration-150 shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#03296A] text-white text-sm font-semibold hover:bg-[#244B75] transition-colors duration-150 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               New Appointment
@@ -224,7 +224,7 @@ export default function DashboardPage() {
               </h2>
               <Link
                 href="/dashboard/appointments"
-                className="flex items-center gap-1 text-xs font-medium text-[#1B3A5C] hover:text-[#244B75] transition-colors duration-150"
+                className="flex items-center gap-1 text-xs font-medium text-[#03296A] hover:text-[#244B75] transition-colors duration-150"
               >
                 View all
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-400 mb-3">Your schedule is clear for the rest of the day.</p>
                 <button
                   onClick={() => setShowModal(true)}
-                  className="text-sm font-medium text-[#1B3A5C] hover:text-[#244B75] transition-colors duration-150"
+                  className="text-sm font-medium text-[#03296A] hover:text-[#244B75] transition-colors duration-150"
                 >
                   Book one now
                 </button>

@@ -2,8 +2,10 @@
 
 import { useState, FormEvent, Suspense } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
+import { recordLogin } from './actions';
 
 function LoginForm() {
   const router = useRouter();
@@ -31,6 +33,10 @@ function LoginForm() {
       setLoading(false);
       return;
     }
+
+    // Best-effort last-login timestamp. recordLogin never throws, so a
+    // failure here cannot block the redirect.
+    await recordLogin();
 
     router.push(redirectTo);
     router.refresh();
@@ -103,6 +109,15 @@ function LoginForm() {
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>
+
+        <div className="text-center pt-1">
+          <Link
+            href="/login/forgot-password"
+            className="text-sm font-medium text-blue-100 hover:text-white transition-colors"
+          >
+            Forgot your password?
+          </Link>
+        </div>
       </form>
     </div>
   );

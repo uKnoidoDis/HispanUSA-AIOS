@@ -131,7 +131,7 @@ function wrapEmail(bodyHtml: string): string {
         <tr><td style="border-top:1px solid #e5e7eb;padding:24px 32px;text-align:center;background-color:#f9fafb;">
           <p style="margin:0;color:#374151;font-size:13px;font-weight:bold;">HispanUSA Accounting &amp; Tax Services</p>
           <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">8050 North University Drive, Suite #206, Tamarac, FL 33321</p>
-          <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Phone: ${OFFICE_PHONE} | Website: <a href="https://hispanusa.com" style="color:#1B3A5C;text-decoration:none;">hispanusa.com</a></p>
+          <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Phone: ${OFFICE_PHONE} | Website: <a href="https://hispanusa.com" style="color:#03296A;text-decoration:none;">hispanusa.com</a></p>
           <div style="margin:16px 0 0;padding-top:16px;border-top:1px solid #e5e7eb;">
             <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
               <td style="vertical-align:middle;padding-right:10px;">
@@ -152,10 +152,10 @@ function wrapEmail(bodyHtml: string): string {
 
 /** Appointment info block used in confirmation/reminder emails */
 function apptInfoBlock(dateDisplay: string, timeDisplay: string): string {
-  return `<div style="background:#f0f7ff;border-left:4px solid #1B3A5C;padding:16px;border-radius:4px;margin:16px 0;">
-    <p style="margin:0 0 6px;color:#1B3A5C;font-size:15px;"><strong>&#128197; ${dateDisplay}</strong></p>
-    <p style="margin:0 0 6px;color:#1B3A5C;font-size:15px;"><strong>&#128336; ${timeDisplay}</strong></p>
-    <p style="margin:0;color:#1B3A5C;font-size:15px;"><strong>&#128205; ${OFFICE_ADDRESS}</strong></p>
+  return `<div style="background:#f0f7ff;border-left:4px solid #03296A;padding:16px;border-radius:4px;margin:16px 0;">
+    <p style="margin:0 0 6px;color:#03296A;font-size:15px;"><strong>&#128197; ${dateDisplay}</strong></p>
+    <p style="margin:0 0 6px;color:#03296A;font-size:15px;"><strong>&#128336; ${timeDisplay}</strong></p>
+    <p style="margin:0;color:#03296A;font-size:15px;"><strong>&#128205; ${OFFICE_ADDRESS}</strong></p>
   </div>`;
 }
 
@@ -192,12 +192,12 @@ export async function sendConfirmationMessage(
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Su cita ha sido confirmada:</p>
        ${apptInfoBlock(dateDisplay, timeDisplay)}
-       <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Your appointment has been confirmed:</p>
        ${apptInfoBlock(dateDisplay, timeDisplay)}
-       <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -254,23 +254,23 @@ export async function sendChecklistMessage(
   const genericDocsMsg = lang === 'es'
     ? `<p style="margin:0 0 16px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:20px;">
          Por favor traiga cualquier documento relevante a su cita. Si tiene preguntas sobre qué traer, llame al
-         <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.
+         <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.
        </p>`
     : `<p style="margin:0 0 16px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:20px;">
          Please bring any relevant documents to your appointment. If you have questions about what to bring, call
-         <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.
+         <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.
        </p>`;
 
   const bodyHtml = lang === 'es'
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 16px;color:#374151;">Su cita en HispanUSA es el <strong>${dateDisplay}</strong>. Por favor prepare los siguientes documentos antes de su cita:</p>
        ${checklistHtml || genericDocsMsg}
-       <p style="margin:0 0 12px;color:#374151;">¿Preguntas? Llame al <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">¿Preguntas? Llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 16px;color:#374151;">Your HispanUSA appointment is on <strong>${dateDisplay}</strong>. Please prepare the following documents before your appointment:</p>
        ${checklistHtml || genericDocsMsg}
-       <p style="margin:0 0 12px;color:#374151;">Questions? Call <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">Questions? Call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -320,11 +320,11 @@ export async function sendRejectionMessage(
   const bodyHtml = lang === 'es'
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 16px;color:#374151;">Lamentamos informarle que el horario solicitado no está disponible en este momento.</p>
-       <p style="margin:0 0 12px;color:#374151;">Por favor llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;"><strong>${OFFICE_PHONE}</strong></a> para coordinar una nueva cita.</p>
+       <p style="margin:0 0 12px;color:#374151;">Por favor llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> para coordinar una nueva cita.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 16px;color:#374151;">Unfortunately your requested appointment time is unavailable.</p>
-       <p style="margin:0 0 12px;color:#374151;">Please call us at <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;"><strong>${OFFICE_PHONE}</strong></a> to schedule a new appointment.</p>
+       <p style="margin:0 0 12px;color:#374151;">Please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> to schedule a new appointment.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -385,12 +385,12 @@ export async function sendReminderMessage(
       ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">Este es un recordatorio de que su cita en HispanUSA es <strong>MAÑANA</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">Si necesita reprogramar, llame al <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a> lo antes posible.</p>
+         <p style="margin:0 0 12px;color:#374151;">Si necesita reprogramar, llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> lo antes posible.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
       : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">This is a reminder that your HispanUSA appointment is <strong>TOMORROW</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">If you need to reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a> as soon as possible.</p>
+         <p style="margin:0 0 12px;color:#374151;">If you need to reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> as soon as possible.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   } else if (isDocReminder) {
@@ -414,12 +414,12 @@ export async function sendReminderMessage(
       ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 16px;color:#374151;">Su cita en HispanUSA es en <strong>${daysLabel}</strong> (${dateDisplay} a las ${timeDisplay}). Por favor tenga listos los siguientes documentos:</p>
          ${checklistHtml || genericDocs}
-         <p style="margin:0 0 12px;color:#374151;">¿Preguntas? Llame al <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+         <p style="margin:0 0 12px;color:#374151;">¿Preguntas? Llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
       : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 16px;color:#374151;">Your HispanUSA appointment is in <strong>${daysLabel}</strong> (${dateDisplay} at ${timeDisplay}). Please have the following documents ready:</p>
          ${checklistHtml || genericDocs}
-         <p style="margin:0 0 12px;color:#374151;">Questions? Call <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+         <p style="margin:0 0 12px;color:#374151;">Questions? Call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   } else {
@@ -434,12 +434,12 @@ export async function sendReminderMessage(
       ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">Este es un recordatorio de que su cita en HispanUSA es en <strong>${daysLabel}</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+         <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
       : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">This is a reminder that your HispanUSA appointment is in <strong>${daysLabel}</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#1B3A5C;">${OFFICE_PHONE}</a>.</p>
+         <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
   }
 

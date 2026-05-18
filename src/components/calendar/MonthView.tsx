@@ -98,9 +98,9 @@ export default function MonthView({
                   <span
                     className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
                       isToday
-                        ? 'bg-[#1B3A5C] text-white'
+                        ? 'bg-[#03296A] text-white'
                         : isThisMonth
-                        ? 'text-gray-800 group-hover:bg-[#1B3A5C] group-hover:text-white'
+                        ? 'text-gray-800 group-hover:bg-[#244B75] group-hover:text-white'
                         : 'text-gray-400'
                     }`}
                   >

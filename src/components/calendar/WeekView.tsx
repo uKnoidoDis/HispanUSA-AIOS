@@ -150,14 +150,14 @@ export default function WeekView({
               }`}
             >
               <p className={`text-xs font-semibold uppercase tracking-widest ${
-                isToday ? 'text-[#1B3A5C]' : 'text-gray-400'
+                isToday ? 'text-[#03296A]' : 'text-gray-400'
               }`}>
                 {name}
               </p>
               <div className="flex justify-center mt-1">
                 <span className={`text-xl font-bold w-9 h-9 flex items-center justify-center rounded-full ${
                   isToday
-                    ? 'bg-[#1B3A5C] text-white'
+                    ? 'bg-[#03296A] text-white'
                     : 'text-gray-800'
                 }`}>
                   {day.getDate()}

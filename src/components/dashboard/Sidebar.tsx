@@ -13,15 +13,17 @@ import {
   Users,
   LogOut,
   Hourglass,
+  ShieldCheck,
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/dashboard',              label: 'Overview',      icon: LayoutDashboard },
-  { href: '/dashboard/calendar',     label: 'Calendar',      icon: Calendar },
-  { href: '/dashboard/appointments', label: 'Appointments',  icon: ClipboardList },
-  { href: '/dashboard/pending',      label: 'Pending',       icon: Hourglass, showBadge: true },
-  { href: '/dashboard/availability', label: 'Availability',  icon: Clock },
-  { href: '/dashboard/clients',      label: 'Clients',       icon: Users },
+  { href: '/dashboard',              label: 'Overview',        icon: LayoutDashboard },
+  { href: '/dashboard/calendar',     label: 'Calendar',        icon: Calendar },
+  { href: '/dashboard/appointments', label: 'Appointments',    icon: ClipboardList },
+  { href: '/dashboard/pending',      label: 'Pending',         icon: Hourglass, showBadge: true },
+  { href: '/dashboard/availability', label: 'Availability',    icon: Clock },
+  { href: '/dashboard/clients',      label: 'Clients',         icon: Users },
+  { href: '/dashboard/admin/users',  label: 'User Management', icon: ShieldCheck, adminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -31,15 +33,26 @@ export default function Sidebar() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user?.user_metadata?.name) {
         setUserName(user.user_metadata.name);
       } else if (user?.email) {
         const prefix = user.email.split('@')[0];
         setUserName(prefix.charAt(0).toUpperCase() + prefix.slice(1));
+      }
+      if (user) {
+        // Role drives whether the User Management link is shown. The
+        // staff_profiles_self_read RLS policy allows this read.
+        const { data: profile } = await supabase
+          .from('staff_profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (profile?.role) setUserRole(profile.role);
       }
     });
   }, []);
@@ -88,6 +101,11 @@ export default function Sidebar() {
     return 'Good evening';
   })();
 
+  const isAdminViewer = userRole === 'owner' || userRole === 'admin';
+  const visibleNavItems = navItems.filter(
+    (item) => !item.adminOnly || isAdminViewer
+  );
+
   const sidebarContent = (
     <>
       {/* Logo */}
@@ -108,7 +126,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(item => {
+        {visibleNavItems.map(item => {
           const Icon = item.icon;
           const isActive =
             item.href === '/dashboard'
@@ -124,7 +142,7 @@ export default function Sidebar() {
               className={`
                 flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150
                 ${isActive
-                  ? 'bg-white/10 text-white border-l-[3px] border-l-[#D4932A] ml-0 pl-[9px]'
+                  ? 'bg-white/10 text-white border-l-[3px] border-l-[#C1282D] ml-0 pl-[9px]'
                   : 'text-gray-400 hover:bg-white/[0.07] hover:text-gray-200 border-l-[3px] border-l-transparent ml-0 pl-[9px]'
                 }
               `}
@@ -167,7 +185,7 @@ export default function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-40 lg:hidden p-2 rounded-lg bg-[#03296A] text-white shadow-lg hover:bg-[#1B3A5C] transition-colors duration-150"
+        className="fixed top-3 left-3 z-40 lg:hidden p-2 rounded-lg bg-[#03296A] text-white shadow-lg hover:bg-[#244B75] transition-colors duration-150"
         aria-label="Open navigation"
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

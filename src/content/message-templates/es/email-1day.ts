@@ -38,7 +38,7 @@ const email1DayEs: EmailTemplate = {
         <tr><td style="background-color:#f9fafb;border-top:1px solid #e5e7eb;padding:24px 40px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:13px;font-weight:bold;">HispanUSA Accounting &amp; Tax Services</p>
           <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">8050 North University Drive, Suite #206, Tamarac, FL 33321</p>
-          <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Phone: 954-934-0194 | Website: <a href="https://hispanusa.com" style="color:#1B3A5C;text-decoration:none;">hispanusa.com</a></p>
+          <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Phone: 954-934-0194 | Website: <a href="https://hispanusa.com" style="color:#03296A;text-decoration:none;">hispanusa.com</a></p>
           <table cellpadding="0" cellspacing="0" style="margin:16px auto 0;border-top:1px solid #e5e7eb;padding-top:16px;"><tr>
             <td style="vertical-align:middle;padding:0 10px 0 0;">
               <img src="https://hispan-usa-aios.vercel.app/dhs-logo-dark.png" alt="Dark Horse Systems" width="100" style="display:block;max-width:100px;height:auto;" />

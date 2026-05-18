@@ -186,7 +186,7 @@ export default function AppointmentDetailPage({
         <Header title="Appointment" />
         <div className="flex-1 p-6">
           <p className="text-red-600">Appointment not found.</p>
-          <button onClick={() => router.back()} className="mt-2 text-sm text-[#1B3A5C] hover:underline">
+          <button onClick={() => router.back()} className="mt-2 text-sm text-[#03296A] hover:underline">
             ← Go back
           </button>
         </div>
@@ -260,7 +260,7 @@ export default function AppointmentDetailPage({
             {!isCancelled && (
               <button
                 onClick={() => { setShowReassign(s => !s); setReassignTo(''); }}
-                className="text-xs text-[#1B3A5C] font-medium hover:underline"
+                className="text-xs text-[#03296A] font-medium hover:underline"
               >
                 {showReassign ? 'Cancel' : 'Reassign'}
               </button>
@@ -282,7 +282,7 @@ export default function AppointmentDetailPage({
                   <select
                     value={reassignTo}
                     onChange={e => setReassignTo(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A5C]"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A]"
                   >
                     <option value="">Select preparer...</option>
                     {preparers
@@ -331,7 +331,7 @@ export default function AppointmentDetailPage({
                       s === appt.status
                         ? s === 'cancelled'
                           ? 'bg-red-600 text-white border-red-600'
-                          : 'bg-[#1B3A5C] text-white border-[#1B3A5C]'
+                          : 'bg-[#03296A] text-white border-[#03296A]'
                         : s === 'cancelled'
                         ? 'bg-white text-red-500 border-red-200 hover:bg-red-50'
                         : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'

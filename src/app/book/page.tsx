@@ -335,7 +335,7 @@ export default function BookPage() {
                   <div className="flex flex-col items-center">
                     <div
                       className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        i < currentStepNum ? 'bg-[#03296A]' : i === currentStepNum ? 'bg-[#D4932A] ring-4 ring-[#D4932A]/20' : 'bg-gray-300'
+                        i < currentStepNum ? 'bg-[#03296A]' : i === currentStepNum ? 'bg-[#C1282D] ring-4 ring-[#C1282D]/20' : 'bg-gray-300'
                       }`}
                     />
                     <span className={`text-[10px] mt-1.5 font-medium transition-colors duration-300 ${
@@ -371,13 +371,13 @@ export default function BookPage() {
               <div className="flex flex-col gap-4">
                 <button
                   onClick={() => selectLanguage('en')}
-                  className="w-full py-5 px-6 bg-white rounded-xl border-2 border-gray-200 hover:border-[#1B3A5C] hover:bg-[#EDF2F8] transition-all duration-200 text-xl font-bold text-[#03296A] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-md hover:-translate-y-0.5"
+                  className="w-full py-5 px-6 bg-white rounded-xl border-2 border-gray-200 hover:border-[#244B75] hover:bg-[#EDF2F8] transition-all duration-200 text-xl font-bold text-[#03296A] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-md hover:-translate-y-0.5"
                 >
                   English
                 </button>
                 <button
                   onClick={() => selectLanguage('es')}
-                  className="w-full py-5 px-6 bg-[#03296A] rounded-xl border-2 border-[#03296A] hover:bg-[#1B3A5C] transition-all duration-200 text-xl font-bold text-white shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  className="w-full py-5 px-6 bg-[#03296A] rounded-xl border-2 border-[#03296A] hover:bg-[#244B75] transition-all duration-200 text-xl font-bold text-white shadow-sm hover:shadow-md hover:-translate-y-0.5"
                 >
                   Español
                 </button>
@@ -415,7 +415,7 @@ export default function BookPage() {
                         setErrors(err => ({ ...err, subtype: undefined }));
                       }}
                       className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 font-medium outline-none transition-colors ${
-                        errors.subtype ? 'border-red-400' : 'border-gray-200 focus:border-[#1B3A5C]'
+                        errors.subtype ? 'border-red-400' : 'border-gray-200 focus:border-[#03296A]'
                       }`}
                     >
                       <option value="">—</option>
@@ -429,7 +429,7 @@ export default function BookPage() {
                     <div className="mt-4">
                       <button
                         onClick={confirmType}
-                        className="w-full py-4 bg-[#1B3A5C] text-white font-bold rounded-xl hover:bg-[#244B75] transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-[#03296A] text-white font-bold rounded-xl hover:bg-[#244B75] transition-colors flex items-center justify-center gap-2"
                       >
                         {t.next} <ChevronRight className="w-4 h-4" />
                       </button>
@@ -474,12 +474,12 @@ export default function BookPage() {
 
               {/* Summary chip */}
               {booking.date && booking.time && booking.appointmentType && (
-                <div className="bg-[#EDF2F8] border border-[#1B3A5C]/20 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
-                  <div className="w-8 h-8 bg-[#1B3A5C]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-4 h-4 text-[#1B3A5C]" />
+                <div className="bg-[#EDF2F8] border border-[#03296A]/20 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#03296A]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-4 h-4 text-[#03296A]" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#1B3A5C] truncate">{t.types[booking.appointmentType]}</p>
+                    <p className="text-sm font-semibold text-[#03296A] truncate">{t.types[booking.appointmentType]}</p>
                     <p className="text-xs text-gray-500">{formatDateDisplay(booking.date, booking.language)} · {formatTime12(booking.time)}</p>
                   </div>
                 </div>
@@ -498,7 +498,7 @@ export default function BookPage() {
                     onChange={e => { setBooking(b => ({ ...b, name: e.target.value })); setErrors(er => ({ ...er, name: undefined })); }}
                     autoComplete="name"
                     className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors placeholder:text-gray-400 ${
-                      errors.name ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#1B3A5C]'
+                      errors.name ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
                     }`}
                   />
                 </FormField>
@@ -516,7 +516,7 @@ export default function BookPage() {
                     autoComplete="tel"
                     inputMode="tel"
                     className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors placeholder:text-gray-400 ${
-                      errors.phone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#1B3A5C]'
+                      errors.phone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
                     }`}
                   />
                 </FormField>
@@ -535,7 +535,7 @@ export default function BookPage() {
                     autoComplete="email"
                     inputMode="email"
                     className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors placeholder:text-gray-400 ${
-                      errors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#1B3A5C]'
+                      errors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
                     }`}
                   />
                 </FormField>
@@ -550,7 +550,7 @@ export default function BookPage() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="mt-6 w-full py-4 bg-[#D4932A] text-white font-bold text-base rounded-xl hover:bg-[#B87D22] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="mt-6 w-full py-4 bg-[#C1282D] text-white font-bold text-base rounded-xl hover:bg-[#A82226] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-sm"
               >
                 {submitting ? t.submitting : t.submit}
                 {!submitting && <ChevronRight className="w-5 h-5" />}
@@ -592,7 +592,7 @@ export default function BookPage() {
 
               <p className="text-sm text-gray-500">
                 {t.successCall}{' '}
-                <a href="tel:9549340194" className="text-[#1B3A5C] font-semibold hover:underline">
+                <a href="tel:9549340194" className="text-[#03296A] font-semibold hover:underline">
                   (954) 934-0194
                 </a>
               </p>
@@ -603,7 +603,7 @@ export default function BookPage() {
           {showBack && step !== 'contact' && (
             <button
               onClick={goBack}
-              className="mt-6 flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B3A5C] transition-colors font-medium"
+              className="mt-6 flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#244B75] transition-colors font-medium"
             >
               <ChevronLeft className="w-4 h-4" />
               {t.back}
@@ -612,7 +612,7 @@ export default function BookPage() {
           {step === 'contact' && (
             <button
               onClick={goBack}
-              className="mt-4 flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B3A5C] transition-colors font-medium"
+              className="mt-4 flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#244B75] transition-colors font-medium"
             >
               <ChevronLeft className="w-4 h-4" />
               {t.back}
@@ -659,7 +659,7 @@ function TypeCard({
       className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 text-left transition-all duration-200 ${
         selected
           ? 'border-[#03296A] bg-[#EDF2F8] shadow-sm'
-          : 'border-gray-200 bg-white hover:border-[#1B3A5C]/40 hover:shadow-md hover:-translate-y-[2px]'
+          : 'border-gray-200 bg-white hover:border-[#244B75]/40 hover:shadow-md hover:-translate-y-[2px]'
       }`}
     >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -756,7 +756,7 @@ function DateStep({
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <span className="font-bold text-[#1B3A5C] text-base">
+          <span className="font-bold text-[#03296A] text-base">
             {t.months[viewMonth]} {viewYear}
           </span>
           <button
@@ -801,7 +801,7 @@ function DateStep({
                 >
                   {date.getDate()}
                   {isToday && !isSel && (
-                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#D4932A]" />
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C1282D]" />
                   )}
                   {isAvail && !isSel && !isPast && (
                     <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
@@ -868,8 +868,8 @@ function TimeStep({
                 onClick={() => onSelect(time)}
                 className={`py-3.5 px-2 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${
                   isSel
-                    ? 'bg-[#1B3A5C] border-[#1B3A5C] text-white shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#1B3A5C]/50 hover:bg-[#EDF2F8]'
+                    ? 'bg-[#03296A] border-[#03296A] text-white shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#244B75]/50 hover:bg-[#EDF2F8]'
                 }`}
               >
                 {formatTime12(time)}
@@ -911,7 +911,7 @@ function FormField({
 function SummaryRow({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[#1B3A5C]/50 flex-shrink-0">{icon}</span>
+      <span className="text-[#03296A]/50 flex-shrink-0">{icon}</span>
       <span className="text-sm text-gray-700 font-medium">{label}</span>
     </div>
   );

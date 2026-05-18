@@ -391,7 +391,7 @@ export default function AvailabilityPage() {
       {/* ── Page header ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-[1280px] mx-auto">
-          <h1 className="text-xl font-bold text-[#1B3A5C]">Availability</h1>
+          <h1 className="text-xl font-bold text-[#03296A]">Availability</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Open and close time slots for each preparer
             {taxSeason && (
@@ -419,7 +419,7 @@ export default function AvailabilityPage() {
               className="
                 appearance-none pl-8 pr-8 py-2 text-sm font-medium border border-gray-300
                 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2
-                focus:ring-[#1B3A5C] focus:border-[#1B3A5C] min-w-[180px] cursor-pointer
+                focus:ring-[#03296A] focus:border-[#03296A] min-w-[180px] cursor-pointer
                 transition-colors hover:border-gray-400
               "
             >
@@ -456,7 +456,7 @@ export default function AvailabilityPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={goToPrevWeek}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C]"
+              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]"
               aria-label="Previous week"
             >
               <ChevronLeftIcon />
@@ -468,7 +468,7 @@ export default function AvailabilityPage() {
 
             <button
               onClick={goToNextWeek}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C]"
+              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]"
               aria-label="Next week"
             >
               <ChevronRightIcon />
@@ -476,7 +476,7 @@ export default function AvailabilityPage() {
 
             <button
               onClick={goToToday}
-              className="ml-1 px-3 py-1.5 text-xs font-medium text-[#1B3A5C] border border-[#1B3A5C]/30 rounded-md hover:bg-[#EDF2F8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C]"
+              className="ml-1 px-3 py-1.5 text-xs font-medium text-[#03296A] border border-[#03296A]/30 rounded-md hover:bg-[#EDF2F8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]"
             >
               Today
             </button>
@@ -499,7 +499,7 @@ export default function AvailabilityPage() {
                     px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300
                     text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400
                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                    focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C]
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]
                   "
                 >
                   {isBulkLoading ? (
@@ -523,14 +523,14 @@ export default function AvailabilityPage() {
               disabled={isAnyBulkBusy}
               className="
                 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                text-[#1B3A5C] border border-[#1B3A5C]/40 bg-[#EDF2F8]
-                hover:bg-[#1B3A5C]/10 transition-colors
+                text-[#03296A] border border-[#03296A]/40 bg-[#EDF2F8]
+                hover:bg-[#244B75]/10 transition-colors
                 disabled:opacity-50 disabled:cursor-not-allowed
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C]
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]
               "
             >
               {isCopyLoading ? (
-                <span className="h-2 w-2 rounded-full bg-[#1B3A5C] animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-[#03296A] animate-pulse" />
               ) : (
                 <CopyIcon />
               )}

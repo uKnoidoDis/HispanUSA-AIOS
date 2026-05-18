@@ -40,9 +40,9 @@ function ToastNotification({
       icon: 'text-red-500',
     },
     info: {
-      border: 'border-l-[#1B3A5C]',
+      border: 'border-l-[#03296A]',
       bg: 'bg-white',
-      icon: 'text-[#1B3A5C]',
+      icon: 'text-[#03296A]',
     },
   };
 
