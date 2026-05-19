@@ -6,6 +6,11 @@ import { addThirtyMinutes } from '@/lib/availability-utils';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
 
+// Version tag for the SMS consent disclosure text shown on the booking form.
+// Bump this (year-month) whenever the disclosure wording materially changes,
+// so each stored consent record points at the exact text the client agreed to.
+const SMS_CONSENT_TEXT_VERSION = 'v1-2026-05';
+
 const bookSchema = z.object({
   client_name:      z.string().min(2, 'Full name required'),
   client_phone:     z.string().min(10, 'Valid US phone required'),
@@ -18,10 +23,25 @@ const bookSchema = z.object({
   date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
   start_time:       z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM or HH:MM:SS'),
   language:         z.enum(['en', 'es']).default('es'),
+  sms_consent:      z.boolean().default(false),
 }).refine(
   data => data.appointment_type !== 'professional_services' || !!data.service_subtype,
   { message: 'service_subtype is required for professional_services' }
 );
+
+// Extracts the client IP from proxy headers. Never trusts a client-supplied
+// body value — only reads headers set by the platform proxy (Vercel). Returns
+// the first address in x-forwarded-for, falling back to x-real-ip, else null.
+function getClientIp(request: Request): string | null {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim();
+    if (first) return first;
+  }
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp && realIp.trim()) return realIp.trim();
+  return null;
+}
 
 // ─── POST /api/appointments/book ───────────────────────────────────────────────
 // Public endpoint — no authentication required.
@@ -162,6 +182,13 @@ export async function POST(request: NextRequest) {
   // auto_send_checklist: true for tax types, false for professional_services
   const autoSendChecklist = input.appointment_type !== 'professional_services';
 
+  // ── SMS consent ────────────────────────────────────────────────────────────
+  // Metadata columns are only populated when consent is granted; otherwise NULL.
+  const smsConsent = input.sms_consent;
+  const consentAt = smsConsent ? new Date().toISOString() : null;
+  const consentIp = smsConsent ? (getClientIp(request) ?? 'unknown') : null;
+  const consentTextVersion = smsConsent ? SMS_CONSENT_TEXT_VERSION : null;
+
   // ── Create appointment with status = pending ────────────────────────────────
   const { data: appointment, error: apptError } = await supabase
     .from('appointments')
@@ -180,6 +207,10 @@ export async function POST(request: NextRequest) {
       booked_by:            'client',
       notes:                null,
       auto_send_checklist:  autoSendChecklist,
+      sms_consent:              smsConsent,
+      sms_consent_at:           consentAt,
+      sms_consent_ip:           consentIp,
+      sms_consent_text_version: consentTextVersion,
     })
     .select('id, date, start_time, end_time, appointment_type, status')
     .single();

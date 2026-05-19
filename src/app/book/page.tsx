@@ -26,6 +26,7 @@ interface BookingState {
   name:             string;
   phone:            string;
   email:            string;
+  smsConsent:       boolean;
 }
 
 // ─── Translations ─────────────────────────────────────────────────────────────
@@ -93,6 +94,15 @@ const copy = {
     days:   ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     today:  'Today',
     stepLabels: ['Language','Type','Date','Time','Contact','Done'],
+    smsConsentLabel: 'Yes, send me text message reminders about my appointment.',
+    smsConsentDisclosure:
+      'By checking this box, you agree to receive appointment-related text ' +
+      'messages from HispanUSA Accounting & Tax Services at the phone number ' +
+      'provided. Message frequency varies, up to 4 messages per appointment. ' +
+      'Message and data rates may apply. Reply STOP to unsubscribe at any time. ' +
+      'Reply HELP for help. See our {privacy} and {terms}.',
+    privacyPolicyLinkText: 'Privacy Policy',
+    termsLinkText: 'Terms and Conditions',
   },
   es: {
     header:          'HispanUSA',
@@ -156,6 +166,16 @@ const copy = {
     days:   ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
     today:  'Hoy',
     stepLabels: ['Idioma','Tipo','Fecha','Horario','Contacto','Listo'],
+    smsConsentLabel: 'Sí, envíenme recordatorios de mi cita por mensaje de texto.',
+    smsConsentDisclosure:
+      'Al marcar esta casilla, usted acepta recibir mensajes de texto ' +
+      'relacionados con su cita de HispanUSA Accounting & Tax Services al ' +
+      'número de teléfono proporcionado. La frecuencia de los mensajes varía, ' +
+      'hasta 4 mensajes por cita. Pueden aplicarse tarifas de mensajes y datos. ' +
+      'Responda STOP para cancelar la suscripción en cualquier momento. ' +
+      'Responda HELP para obtener ayuda. Consulte nuestra {privacy} y nuestros {terms}.',
+    privacyPolicyLinkText: 'Política de Privacidad',
+    termsLinkText: 'Términos y Condiciones',
   },
 } as const;
 
@@ -208,6 +228,7 @@ export default function BookPage() {
     name:            '',
     phone:           '',
     email:           '',
+    smsConsent:      false,
   });
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -278,6 +299,7 @@ export default function BookPage() {
           date:             booking.date,
           start_time:       booking.time,
           language:         booking.language,
+          sms_consent:      booking.smsConsent,
         }),
       });
 
@@ -539,6 +561,54 @@ export default function BookPage() {
                     }`}
                   />
                 </FormField>
+              </div>
+
+              {/* ── SMS consent (unchecked by default; booking proceeds either way) ── */}
+              <div className="mt-5 rounded-xl border-2 border-gray-200 bg-white p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={booking.smsConsent}
+                    onChange={e => setBooking(b => ({ ...b, smsConsent: e.target.checked }))}
+                    className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-2 border-gray-300 accent-[#03296A] focus:outline-none focus:ring-2 focus:ring-[#03296A]/40"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    {t.smsConsentLabel}
+                  </span>
+                </label>
+                <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                  {t.smsConsentDisclosure
+                    .split(/(\{privacy\}|\{terms\})/)
+                    .map((part, i) => {
+                      if (part === '{privacy}') {
+                        return (
+                          <a
+                            key={i}
+                            href="https://hispanusa.com/privacy-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#03296A] underline"
+                          >
+                            {t.privacyPolicyLinkText}
+                          </a>
+                        );
+                      }
+                      if (part === '{terms}') {
+                        return (
+                          <a
+                            key={i}
+                            href="https://hispanusa.com/terms-and-conditions"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#03296A] underline"
+                          >
+                            {t.termsLinkText}
+                          </a>
+                        );
+                      }
+                      return <React.Fragment key={i}>{part}</React.Fragment>;
+                    })}
+                </p>
               </div>
 
               {submitError && (
