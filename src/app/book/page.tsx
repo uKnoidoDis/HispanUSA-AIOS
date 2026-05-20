@@ -341,7 +341,6 @@ export default function BookPage() {
           <button
             onClick={() => {
               setBooking(b => ({ ...b, language: b.language === 'en' ? 'es' : 'en' }));
-              if (step === 'language') setStep('type');
             }}
             className="text-sm font-medium text-blue-200/70 hover:text-white transition-colors duration-150 px-3 py-1.5 rounded-md hover:bg-white/10"
           >
