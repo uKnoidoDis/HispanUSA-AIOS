@@ -601,7 +601,7 @@ export default function BookPage() {
                         return (
                           <a
                             key={i}
-                            href="https://hispanusa.com/privacy-policy"
+                            href="/privacy-policy"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#03296A] underline"
@@ -614,7 +614,7 @@ export default function BookPage() {
                         return (
                           <a
                             key={i}
-                            href="https://hispanusa.com/terms-and-conditions"
+                            href="/terms-and-conditions"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#03296A] underline"
