@@ -330,21 +330,39 @@ export default function BookPage() {
   const showBack = step !== 'language' && step !== 'submitted';
   const currentStepNum = STEP_PROGRESS[step];
   const totalSteps     = 5; // language through contact (submitted is done state)
+  const activeIndex    = currentStepNum - 1; // indicator skips Language at index 0
 
   return (
     <div className="min-h-screen bg-[#EDF2F8] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="bg-[#03296A] text-white px-6 py-4 flex items-center justify-end flex-shrink-0">
-        {step !== 'language' && step !== 'submitted' && (
+      {step !== 'submitted' && (
+        <header className="bg-[#03296A] text-white px-6 py-4 flex items-center justify-end flex-shrink-0">
           <button
-            onClick={() => setBooking(b => ({ ...b, language: b.language === 'en' ? 'es' : 'en' }))}
+            onClick={() => {
+              setBooking(b => ({ ...b, language: b.language === 'en' ? 'es' : 'en' }));
+              if (step === 'language') setStep('type');
+            }}
             className="text-sm font-medium text-blue-200/70 hover:text-white transition-colors duration-150 px-3 py-1.5 rounded-md hover:bg-white/10"
           >
             {booking.language === 'en' ? 'Español' : 'English'}
           </button>
-        )}
-      </header>
+        </header>
+      )}
+
+      {/* ── Compact logo strip — visible on all working steps and the success screen ── */}
+      {step !== 'language' && (
+        <div className="bg-white px-6 pt-4 pb-3 flex justify-center flex-shrink-0">
+          <Image
+            src="/hispanusa-logo.png"
+            alt="HispanUSA"
+            width={130}
+            height={43}
+            style={{ height: 'auto' }}
+            priority
+          />
+        </div>
+      )}
 
       {/* ── Progress bar — connected dots with step labels ─────────────────── */}
       {step !== 'language' && step !== 'submitted' && (
@@ -357,11 +375,11 @@ export default function BookPage() {
                   <div className="flex flex-col items-center">
                     <div
                       className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        i < currentStepNum ? 'bg-[#03296A]' : i === currentStepNum ? 'bg-[#C1282D] ring-4 ring-[#C1282D]/20' : 'bg-gray-300'
+                        i < activeIndex ? 'bg-[#03296A]' : i === activeIndex ? 'bg-[#C1282D] ring-4 ring-[#C1282D]/20' : 'bg-gray-300'
                       }`}
                     />
                     <span className={`text-[10px] mt-1.5 font-medium transition-colors duration-300 ${
-                      i <= currentStepNum ? 'text-[#03296A]' : 'text-gray-400'
+                      i <= activeIndex ? 'text-[#03296A]' : 'text-gray-400'
                     }`}>
                       {t.stepLabels[i + 1]}
                     </span>
@@ -369,7 +387,7 @@ export default function BookPage() {
                   {/* Connector line */}
                   {i < totalSteps - 1 && (
                     <div className={`flex-1 h-[2px] mx-1 transition-all duration-300 ${
-                      i < currentStepNum ? 'bg-[#03296A]' : 'bg-gray-200'
+                      i < activeIndex ? 'bg-[#03296A]' : 'bg-gray-200'
                     }`} />
                   )}
                 </React.Fragment>
@@ -385,11 +403,11 @@ export default function BookPage() {
 
           {/* ── STEP: Language ─────────────────────────────────────────────── */}
           {step === 'language' && (
-            <div className="text-center">
-              <div className="mb-10">
-                <Image src="/hispanusa-logo.png" alt="HispanUSA" width={200} height={67} style={{ height: 'auto' }} className="mx-auto mb-4" />
+            <div className="text-center pt-12 sm:pt-20 pb-8">
+              <div className="mb-12">
+                <Image src="/hispanusa-logo.png" alt="HispanUSA" width={400} height={134} style={{ height: 'auto', maxWidth: '100%' }} className="mx-auto mb-4" priority />
               </div>
-              <p className="text-lg font-semibold text-gray-700 mb-6">{t.langPrompt}</p>
+              <p className="text-lg font-semibold text-gray-700 mb-8">{t.langPrompt}</p>
               <div className="flex flex-col gap-4">
                 <button
                   onClick={() => selectLanguage('en')}
