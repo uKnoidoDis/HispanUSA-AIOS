@@ -98,7 +98,7 @@ const copy = {
     smsConsentDisclosure:
       'By checking this box, you agree to receive appointment-related text ' +
       'messages from HispanUSA Accounting & Tax Services at the phone number ' +
-      'provided. Message frequency varies, up to 4 messages per appointment. ' +
+      'provided. Message frequency varies, up to 5 messages per appointment cycle. ' +
       'Message and data rates may apply. Reply STOP to unsubscribe at any time. ' +
       'Reply HELP for help. See our {privacy} and {terms}.',
     privacyPolicyLinkText: 'Privacy Policy',
@@ -171,7 +171,7 @@ const copy = {
       'Al marcar esta casilla, usted acepta recibir mensajes de texto ' +
       'relacionados con su cita de HispanUSA Accounting & Tax Services al ' +
       'número de teléfono proporcionado. La frecuencia de los mensajes varía, ' +
-      'hasta 4 mensajes por cita. Pueden aplicarse tarifas de mensajes y datos. ' +
+      'hasta 5 mensajes por ciclo de cita. Pueden aplicarse tarifas de mensajes y datos. ' +
       'Responda STOP para cancelar la suscripción en cualquier momento. ' +
       'Responda HELP para obtener ayuda. Consulte nuestra {privacy} y nuestros {terms}.',
     privacyPolicyLinkText: 'Política de Privacidad',
