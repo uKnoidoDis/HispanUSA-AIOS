@@ -6,7 +6,7 @@ import WeekView from './WeekView';
 import MonthView from './MonthView';
 import AppointmentSidePanel from './AppointmentSidePanel';
 import type { CalendarAppt, CalendarPreparer, CalendarViewMode } from './calendarTypes';
-import { readableTextColor, CANCELLED_FILL, CANCELLED_BORDER } from './calendarColors';
+import { CANCELLED_FILL, CANCELLED_BORDER } from './calendarColors';
 
 // ─── Date Helpers ─────────────────────────────────────────────────────────────
 
@@ -281,26 +281,18 @@ export default function CalendarView() {
 
           {preparers.map(prep => {
             const hidden = hiddenPrepIds.has(prep.id);
-            const textCol = readableTextColor(prep.color_hex);
             return (
               <button
                 key={prep.id}
                 onClick={() => togglePreparer(prep.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150 flex-shrink-0 ${
+                className={`inline-flex items-center justify-center px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150 flex-shrink-0 ${
                   hidden
                     ? 'border-gray-200 text-gray-400 bg-white hover:border-gray-300'
-                    : 'border-transparent shadow-sm'
+                    : 'border-transparent text-white shadow-sm'
                 }`}
-                style={hidden ? {} : { backgroundColor: prep.color_hex, color: textCol }}
+                style={hidden ? {} : { backgroundColor: prep.color_hex }}
                 title={hidden ? `Show ${prep.name}` : `Hide ${prep.name}`}
               >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: hidden ? prep.color_hex : textCol,
-                    opacity: hidden ? 0.3 : 1,
-                  }}
-                />
                 {prep.name}
               </button>
             );
