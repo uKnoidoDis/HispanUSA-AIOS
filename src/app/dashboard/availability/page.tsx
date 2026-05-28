@@ -15,7 +15,6 @@ import {
   PRESET_LABELS,
 } from '@/lib/availability-utils';
 import type { Preparer, SlotWithMeta, SlotPreset } from '@/types/scheduling';
-import { readableTextColor } from '@/components/calendar/calendarColors';
 
 // -----------------------------------------------------------------------
 // Inline SVG icons (no lucide-react)
@@ -31,6 +30,18 @@ function ChevronRightIcon() {
   return (
     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+function CalendarIcon() {
+  return (
+    <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
     </svg>
   );
 }
@@ -771,11 +782,14 @@ export default function AvailabilityPage() {
       )}
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <div className="flex-1 px-6 py-6 overflow-auto">
-        <div className="max-w-[1280px] mx-auto">
+      <div className="flex-1 min-h-0 px-6 py-6 overflow-hidden flex flex-col">
+        <div className="max-w-[1280px] mx-auto w-full flex-1 min-h-0 flex flex-col">
           {/* No preparer selected — empty state */}
           {!selectedPreparer && (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center py-24 text-center">
+              <div className="text-gray-300 mb-4">
+                <CalendarIcon />
+              </div>
               <h3 className="text-lg font-semibold text-gray-700 mb-1">
                 Select a preparer to manage availability
               </h3>
@@ -789,8 +803,8 @@ export default function AvailabilityPage() {
                     <button
                       key={p.id}
                       onClick={() => setSelectedPreparer(p)}
-                      style={{ backgroundColor: p.color_hex, color: readableTextColor(p.color_hex) }}
-                      className="min-w-[160px] px-6 py-4 rounded-xl text-base font-semibold shadow-sm hover:brightness-95 active:brightness-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#03296A]"
+                      style={{ backgroundColor: p.color_hex, color: '#FFFFFF', textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+                      className="min-w-[160px] px-6 py-4 rounded-xl text-lg font-semibold shadow-sm hover:brightness-95 active:brightness-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#03296A]"
                     >
                       {p.name}
                     </button>

@@ -4,7 +4,6 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import type { Preparer, SlotWithMeta } from '@/types/scheduling';
 import { formatTimeDisplay, slotKey, addThirtyMinutes } from '@/lib/availability-utils';
-import { readableTextColor } from '@/components/calendar/calendarColors';
 
 // -----------------------------------------------------------------------
 // Lock icon (inline — no external icon library)
@@ -130,7 +129,7 @@ export default function AvailabilityGrid({
   }, [weekDays, timeSlots, slots]);
 
   return (
-    <div className="overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="min-w-fit">
         {/* ── Header row ─────────────────────────────────────────────── */}
         <div
@@ -274,7 +273,6 @@ function SlotCell({
   // ── OPEN: solid preparer fill, merged into a block, clickable to close ─
   if (state === 'open') {
     const pos = run?.pos ?? 'single';
-    const textColor = readableTextColor(preparerColor);
     const showLabel = pos === 'start' || pos === 'single';
     const rounding = `${pos === 'start' || pos === 'single' ? 'rounded-t-md' : ''} ${
       pos === 'end' || pos === 'single' ? 'rounded-b-md' : ''
@@ -290,22 +288,19 @@ function SlotCell({
           focus-visible:ring-2 focus-visible:ring-offset-1
           ${isLoading ? 'opacity-60 cursor-wait' : 'hover:brightness-95 active:brightness-90 cursor-pointer'}
         `}
-        style={{ backgroundColor: preparerColor, color: textColor }}
+        style={{ backgroundColor: preparerColor, color: '#FFFFFF' }}
         title={run ? `${run.label} · Open — click to close this slot` : 'Click to close this slot'}
       >
         {isLoading ? (
           <span className="flex items-center justify-center h-full">
-            <span
-              className="h-1.5 w-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: textColor }}
-            />
+            <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-white" />
           </span>
         ) : (
           showLabel && (
             <span className="flex items-start h-full px-1.5 pt-1">
               <span
-                className="text-[10px] font-semibold leading-tight truncate"
-                style={{ color: textColor }}
+                className="text-[11px] font-semibold leading-tight truncate"
+                style={{ color: '#FFFFFF', textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
               >
                 {run?.label} · Open
               </span>
@@ -351,7 +346,7 @@ export function AvailabilityGridSkeleton({
   const gridTemplate = `72px repeat(${colCount}, minmax(80px, 1fr))`;
 
   return (
-    <div className="overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm animate-pulse">
+    <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm animate-pulse">
       <div className="min-w-fit">
         {/* Header skeleton */}
         <div
