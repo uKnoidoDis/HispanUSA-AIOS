@@ -563,7 +563,7 @@ export default function AvailabilityPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-gray-50">
       {/* ── Page header ─────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
         <div className="max-w-[1280px] mx-auto">
           <h1 className="text-xl font-bold text-[#03296A]">Availability</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -579,7 +579,7 @@ export default function AvailabilityPage() {
       </div>
 
       {/* ── Controls ────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
         <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-3">
 
           {/* Preparer selector */}
@@ -630,7 +630,7 @@ export default function AvailabilityPage() {
 
       {/* ── Action bar (bulk + copy) ─────────────────────────────────── */}
       {selectedPreparer && (
-        <div className="bg-white border-b border-gray-200 px-6 py-2.5">
+        <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex-shrink-0">
           <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-2">
             {/* Bulk preset buttons */}
             {(Object.entries(PRESET_LABELS) as [SlotPreset, string][]).map(
@@ -786,7 +786,7 @@ export default function AvailabilityPage() {
         <div className="max-w-[1280px] mx-auto w-full flex-1 min-h-0 flex flex-col">
           {/* No preparer selected — empty state */}
           {!selectedPreparer && (
-            <div className="flex-1 flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex flex-col items-center py-24 text-center">
               <div className="text-gray-300 mb-4">
                 <CalendarIcon />
               </div>
