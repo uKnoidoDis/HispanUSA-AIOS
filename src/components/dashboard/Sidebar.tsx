@@ -246,7 +246,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 min-h-screen bg-[#03296A] text-white flex-col flex-shrink-0">
+      <aside className="hidden lg:flex w-60 h-screen sticky top-0 bg-[#03296A] text-white flex-col flex-shrink-0">
         {sidebarContent}
       </aside>
     </>
