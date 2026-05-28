@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { formatTime } from '@/lib/utils';
 import type { CalendarAppt } from './calendarTypes';
 import {
@@ -112,6 +112,16 @@ export default function WeekView({
   const gridHeight   = totalMinutes * PX_PER_MIN;
   const todayStr     = new Date().toISOString().slice(0, 10);
 
+  // Auto-scroll the time grid to ~8 AM on entry (initial position only — the
+  // key={viewMode} on this component remounts it when switching into Day/Week,
+  // so this fires on view entry but never fights the user's later scrolling).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = Math.max(0, (8 - startHour) * 60 * PX_PER_MIN);
+    }
+  }, [startHour]);
+
   // Group visible appointments by date
   const apptsByDate = useMemo(() => {
     const map = new Map<string, CalendarAppt[]>();
@@ -126,12 +136,15 @@ export default function WeekView({
     return map;
   }, [appointments, days, hiddenPreparerIds]);
 
-  // Hour labels for the time axis
-  const hourLines = Array.from({ length: (endHour - startHour) + 1 }, (_, i) => {
-    const h    = startHour + i;
+  // Time-axis labels — one per 30-min row (on the hour + on the half-hour)
+  const numSlots = (endHour - startHour) * 2;
+  const timeLabels = Array.from({ length: numSlots + 1 }, (_, i) => {
+    const totalMin = startHour * 60 + i * 30;
+    const h    = Math.floor(totalMin / 60);
+    const m    = totalMin % 60;
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hr   = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    return { label: `${hr}:00 ${ampm}`, top: i * SLOT_HEIGHT * 2 };
+    return { label: `${hr}:${m === 0 ? '00' : '30'} ${ampm}`, top: i * SLOT_HEIGHT, onHour: m === 0 };
   });
 
   return (
@@ -175,18 +188,18 @@ export default function WeekView({
       </div>
 
       {/* ── Scrollable time grid ─────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="flex" style={{ height: gridHeight }}>
 
           {/* Time axis */}
           <div className="w-16 flex-shrink-0 relative border-r border-gray-200 bg-white">
-            {hourLines.map(({ label, top }, i) => (
+            {timeLabels.map(({ label, top, onHour }, i) => (
               <div
                 key={i}
                 className="absolute right-0 left-0 flex justify-end pr-2"
                 style={{ top: top - 9 }}
               >
-                <span className="text-[11px] text-gray-400 font-medium leading-none">
+                <span className={`text-[11px] leading-none ${onHour ? 'text-gray-500 font-medium' : 'text-gray-400'}`}>
                   {label}
                 </span>
               </div>

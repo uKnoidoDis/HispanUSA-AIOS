@@ -73,9 +73,9 @@ export default function CalendarView() {
 
   // Derived values
   const taxSeason = isTaxSeason(currentDate);
-  const startHour = 9;
-  const endHour   = taxSeason ? 19 : 17;
-  const numDays   = viewMode === 'day' ? 1 : (taxSeason ? 6 : 5);
+  const startHour = 5;
+  const endHour   = 22;
+  const numDays   = viewMode === 'day' ? 1 : 7;
 
   // Memoized so useCallback deps get stable references — prevents infinite refetch loop
   // (plain `new Date()` creates a new object reference every render, causing the callback
@@ -363,6 +363,7 @@ export default function CalendarView() {
             />
           ) : (
             <WeekView
+              key={viewMode}
               days={days}
               startHour={startHour}
               endHour={endHour}
