@@ -2,6 +2,12 @@
 
 import React, { useMemo } from 'react';
 import type { CalendarAppt } from './calendarTypes';
+import {
+  readableTextColor,
+  CANCELLED_FILL,
+  CANCELLED_BORDER,
+  CANCELLED_TEXT,
+} from './calendarColors';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,22 +117,32 @@ export default function MonthView({
                 {/* Appointment chips */}
                 <div className="space-y-0.5">
                   {dayAppts.slice(0, maxVisible).map(appt => {
-                    const color     = appt.preparer?.color_hex ?? '#94A3B8';
-                    const isPending = appt.status === 'pending';
+                    const prepColor   = appt.preparer?.color_hex ?? '#94A3B8';
+                    const isPending   = appt.status === 'pending';
+                    const isCancelled = appt.status === 'cancelled';
+
+                    // Preparer = fill, status = border. Cancelled overrides with muted red.
+                    const fill      = isCancelled ? CANCELLED_FILL : prepColor;
+                    const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(prepColor);
+
+                    const chipStyle: React.CSSProperties = { backgroundColor: fill };
+                    if (isCancelled) {
+                      chipStyle.border = `1px solid ${CANCELLED_BORDER}`;
+                    } else if (isPending) {
+                      chipStyle.border = `1px dashed ${textColor}`;
+                    }
 
                     return (
                       <div
                         key={appt.id}
-                        className={`flex items-center gap-1 px-1 py-0.5 rounded text-[11px] leading-tight truncate ${
-                          isPending ? 'opacity-70' : ''
-                        }`}
-                        style={{ backgroundColor: `${color}1A` }}
+                        className="flex items-center gap-1 px-1 py-0.5 rounded text-[11px] leading-tight truncate"
+                        style={chipStyle}
+                        title={`${appt.client_name}${isCancelled ? ' · Cancelled' : isPending ? ' · Pending' : ''}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPending ? 'animate-pulse' : ''}`}
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="truncate font-medium" style={{ color }}>
+                          className={`truncate font-medium ${isCancelled ? 'line-through' : ''}`}
+                          style={{ color: textColor }}
+                        >
                           {appt.client_name}
                         </span>
                       </div>

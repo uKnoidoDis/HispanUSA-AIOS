@@ -3,6 +3,12 @@
 import React, { useMemo } from 'react';
 import { formatTime } from '@/lib/utils';
 import type { CalendarAppt } from './calendarTypes';
+import {
+  readableTextColor,
+  CANCELLED_FILL,
+  CANCELLED_BORDER,
+  CANCELLED_TEXT,
+} from './calendarColors';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -222,53 +228,71 @@ export default function WeekView({
 
                 {/* Appointment blocks */}
                 {positioned.map(({ appt, top, height, leftFrac, widthFrac }) => {
-                  const color      = appt.preparer?.color_hex ?? '#94A3B8';
-                  const isPending  = appt.status === 'pending';
+                  const prepColor   = appt.preparer?.color_hex ?? '#94A3B8';
+                  const isPending   = appt.status === 'pending';
                   const isCancelled = appt.status === 'cancelled';
-                  const isSelected = appt.id === selectedId;
-                  const typeLabel  = TYPE_LABELS[appt.appointment_type] ?? '';
+                  const isSelected  = appt.id === selectedId;
+                  const typeLabel   = TYPE_LABELS[appt.appointment_type] ?? '';
+
+                  // Two dimensions: preparer = fill, status = border/badge.
+                  // Cancelled overrides the preparer color with a muted red treatment.
+                  const fill      = isCancelled ? CANCELLED_FILL : prepColor;
+                  const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(prepColor);
+
+                  const blockStyle: React.CSSProperties = {
+                    top:    `${top + 1}px`,
+                    height: `${height - 2}px`,
+                    left:   `calc(${leftFrac * 100}% + 3px)`,
+                    width:  `calc(${widthFrac * 100}% - 6px)`,
+                    backgroundColor: fill,
+                  };
+                  if (isCancelled) {
+                    blockStyle.border = `2px solid ${CANCELLED_BORDER}`;
+                  } else if (isPending) {
+                    blockStyle.border = `2px dashed ${textColor}`;
+                  } else {
+                    blockStyle.border = '1px solid rgba(0,0,0,0.12)';
+                  }
 
                   return (
                     <button
                       key={appt.id}
                       onClick={() => onSelect(appt)}
-                      title={`${appt.client_name} · ${appt.appointment_type.replace(/_/g, ' ')} · ${formatTime(appt.start_time)}`}
-                      className={`absolute text-left rounded-md overflow-hidden transition-all duration-150 focus:outline-none group ${
-                        isCancelled ? 'opacity-40' : 'hover:brightness-[0.97] hover:shadow-md'
-                      } ${
+                      title={`${appt.client_name} · ${appt.appointment_type.replace(/_/g, ' ')} · ${formatTime(appt.start_time)}${isCancelled ? ' · Cancelled' : isPending ? ' · Pending' : ''}`}
+                      className={`absolute text-left rounded-md overflow-hidden transition-all duration-150 focus:outline-none group hover:brightness-[0.97] hover:shadow-md ${
                         isSelected ? 'ring-2 ring-[#03296A] ring-offset-1 z-20' : 'z-10 hover:z-20'
                       }`}
-                      style={{
-                        top:    `${top + 1}px`,
-                        height: `${height - 2}px`,
-                        left:   `calc(${leftFrac * 100}% + 3px)`,
-                        width:  `calc(${widthFrac * 100}% - 6px)`,
-                        backgroundColor: `${color}1A`,
-                        ...(isPending
-                          ? { border: `2px dashed ${color}` }
-                          : { borderLeft: `4px solid ${color}` }
-                        ),
-                      }}
+                      style={blockStyle}
                     >
-                      {/* Pending pulse indicator */}
+                      {/* Status badge (status = border/badge dimension) */}
                       {isPending && (
                         <span
-                          className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full animate-pulse"
-                          style={{ backgroundColor: color }}
-                        />
+                          className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide leading-none"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.92)', color: '#111827' }}
+                        >
+                          Pending
+                        </span>
+                      )}
+                      {isCancelled && (
+                        <span
+                          className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide leading-none text-white"
+                          style={{ backgroundColor: CANCELLED_BORDER }}
+                        >
+                          Cancelled
+                        </span>
                       )}
 
                       <div className="px-2 py-1 h-full overflow-hidden">
                         <p
-                          className="text-xs font-bold leading-tight truncate"
-                          style={{ color }}
+                          className={`text-xs font-bold leading-tight truncate ${isCancelled ? 'line-through' : ''}`}
+                          style={{ color: textColor }}
                         >
                           {appt.client_name}
                         </p>
                         {height > 38 && (
                           <p
                             className="text-[10px] leading-tight truncate mt-0.5"
-                            style={{ color, opacity: 0.7 }}
+                            style={{ color: textColor, opacity: 0.85 }}
                           >
                             {formatTime(appt.start_time)} · {typeLabel}
                           </p>

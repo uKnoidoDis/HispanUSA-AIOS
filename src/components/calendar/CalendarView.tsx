@@ -6,6 +6,7 @@ import WeekView from './WeekView';
 import MonthView from './MonthView';
 import AppointmentSidePanel from './AppointmentSidePanel';
 import type { CalendarAppt, CalendarPreparer, CalendarViewMode } from './calendarTypes';
+import { readableTextColor, CANCELLED_FILL, CANCELLED_BORDER } from './calendarColors';
 
 // ─── Date Helpers ─────────────────────────────────────────────────────────────
 
@@ -280,6 +281,7 @@ export default function CalendarView() {
 
           {preparers.map(prep => {
             const hidden = hiddenPrepIds.has(prep.id);
+            const textCol = readableTextColor(prep.color_hex);
             return (
               <button
                 key={prep.id}
@@ -287,29 +289,46 @@ export default function CalendarView() {
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150 flex-shrink-0 ${
                   hidden
                     ? 'border-gray-200 text-gray-400 bg-white hover:border-gray-300'
-                    : 'border-transparent text-white shadow-sm'
+                    : 'border-transparent shadow-sm'
                 }`}
-                style={hidden ? {} : { backgroundColor: prep.color_hex }}
+                style={hidden ? {} : { backgroundColor: prep.color_hex, color: textCol }}
                 title={hidden ? `Show ${prep.name}` : `Hide ${prep.name}`}
               >
                 <span
-                  className={`w-2 h-2 rounded-full flex-shrink-0 ${hidden ? 'opacity-30' : ''}`}
-                  style={{ backgroundColor: hidden ? prep.color_hex : 'rgba(255,255,255,0.7)' }}
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: hidden ? prep.color_hex : textCol,
+                    opacity: hidden ? 0.3 : 1,
+                  }}
                 />
                 {prep.name}
               </button>
             );
           })}
 
-          {/* Legend key */}
-          <div className="ml-auto pl-4 flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-              <span className="w-4 h-4 rounded border-2 border-dashed border-gray-300 inline-block flex-shrink-0" />
+          {/* Status legend — the 3 status treatments. The preparer color
+              legend (dot + name) is the filter pills to the left. */}
+          <div className="ml-auto pl-4 flex items-center gap-3 flex-shrink-0 border-l border-gray-200">
+            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+              <span
+                className="w-4 h-4 rounded-sm inline-block flex-shrink-0 border border-black/10"
+                style={{ backgroundColor: '#64748B' }}
+              />
+              Confirmed
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+              <span
+                className="w-4 h-4 rounded-sm inline-block flex-shrink-0 border-2 border-dashed"
+                style={{ borderColor: '#64748B' }}
+              />
               Pending
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-              <span className="w-4 h-4 rounded border-l-[3px] border-gray-400 bg-gray-100 inline-block flex-shrink-0" />
-              Confirmed
+            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+              <span
+                className="w-4 h-4 rounded-sm inline-block flex-shrink-0 border-2"
+                style={{ backgroundColor: CANCELLED_FILL, borderColor: CANCELLED_BORDER }}
+              />
+              Cancelled
             </div>
           </div>
         </div>
