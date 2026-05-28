@@ -14,6 +14,7 @@ import {
   LogOut,
   Hourglass,
   ShieldCheck,
+  Settings,
 } from 'lucide-react';
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/dashboard/availability', label: 'Availability',    icon: Clock },
   { href: '/dashboard/clients',      label: 'Clients',         icon: Users },
   { href: '/dashboard/admin/users',  label: 'User Management', icon: ShieldCheck, adminOnly: true },
+  { href: '/dashboard/settings',     label: 'Settings',        icon: Settings },
 ];
 
 export default function Sidebar() {
