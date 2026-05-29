@@ -168,7 +168,7 @@ export default function DashboardPage() {
               <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#F59E0B]" />
               <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Pending</p>
               <div className="flex items-center gap-2">
-                <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-[#F59E0B]' : 'text-gray-400'}`}>
+                <p className="text-3xl font-bold text-[#F59E0B]">
                   {loading ? '—' : pendingCount}
                 </p>
                 {pendingCount > 0 && (
