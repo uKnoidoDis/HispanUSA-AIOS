@@ -45,22 +45,37 @@ export default function PendingPage() {
 
   const [actionState, setActionState] = useState<Record<string, string>>({});
 
-  const fetchPending = useCallback(async () => {
-    setLoading(true);
+  // silent = background refresh (poll / focus / post-action re-sync): skip the
+  // loading skeleton and don't surface transient errors over a working list.
+  const fetchPending = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/appointments/pending');
+      const res = await fetch('/api/appointments/pending', { cache: 'no-store' });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setItems(data.items ?? []);
     } catch {
-      setError('Could not load pending appointments.');
+      if (!opts?.silent) setError('Could not load pending appointments.');
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchPending(); }, [fetchPending]);
+
+  // Keep the queue live without a manual refresh: poll every 30s and re-fetch
+  // whenever the tab regains focus, so requests that arrive while a receptionist
+  // is sitting on this page appear on their own.
+  useEffect(() => {
+    const interval = setInterval(() => fetchPending({ silent: true }), 30000);
+    const onFocus = () => fetchPending({ silent: true });
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [fetchPending]);
 
   async function approve(id: string) {
     setActionState(s => ({ ...s, [id]: 'approving' }));
@@ -68,7 +83,12 @@ export default function PendingPage() {
       const res = await fetch(`/api/appointments/${id}/approve`, { method: 'POST' });
       if (!res.ok) throw new Error();
       setActionState(s => ({ ...s, [id]: 'approved' }));
-      setTimeout(() => setItems(prev => prev.filter(a => a.id !== id)), 1200);
+      // Optimistic removal for snappy UX, then re-sync with the server so the
+      // queue reflects real DB state (no longer relies on local state alone).
+      setTimeout(() => {
+        setItems(prev => prev.filter(a => a.id !== id));
+        fetchPending({ silent: true });
+      }, 1200);
     } catch {
       setActionState(s => ({ ...s, [id]: 'idle' }));
     }
@@ -80,7 +100,12 @@ export default function PendingPage() {
       const res = await fetch(`/api/appointments/${id}/reject`, { method: 'POST' });
       if (!res.ok) throw new Error();
       setActionState(s => ({ ...s, [id]: 'rejected' }));
-      setTimeout(() => setItems(prev => prev.filter(a => a.id !== id)), 1200);
+      // Optimistic removal for snappy UX, then re-sync with the server so the
+      // queue reflects real DB state (no longer relies on local state alone).
+      setTimeout(() => {
+        setItems(prev => prev.filter(a => a.id !== id));
+        fetchPending({ silent: true });
+      }, 1200);
     } catch {
       setActionState(s => ({ ...s, [id]: 'idle' }));
     }
@@ -98,7 +123,7 @@ export default function PendingPage() {
           </p>
         </div>
         <button
-          onClick={fetchPending}
+          onClick={() => fetchPending()}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 ml-8 rounded-md border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 transition-all duration-150"
         >
