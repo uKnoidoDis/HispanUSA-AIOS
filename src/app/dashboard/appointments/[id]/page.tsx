@@ -33,12 +33,16 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const SUBTYPE_LABELS: Record<string, string> = {
-  divorce:                'Divorce',
-  immigration_consulting: 'Immigration Consulting',
-  general_consulting:     'General Consulting',
-  bankruptcy:             'Bankruptcy',
-  offer_in_compromise:    'Offer in Compromise',
-  other:                  'Other',
+  immigration_consulting:         'Immigration Consulting',
+  immigration_case:               'Immigration Case',
+  divorce_consulting:             'Divorce Consulting',
+  divorce_case:                   'Divorce Case',
+  bankruptcy_consulting:          'Bankruptcy Consulting',
+  bankruptcy_case:                'Bankruptcy Case',
+  offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+  offer_in_compromise_case:       'Offer in Compromise Case',
+  general_consulting:             'General Consulting',
+  other:                          'Other',
 };
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: string }> = {
@@ -245,6 +249,9 @@ export default function AppointmentDetailPage({
               <p>{TYPE_LABELS[appt.appointment_type] ?? appt.appointment_type}</p>
               {appt.service_subtype && (
                 <p className="text-gray-500 text-xs">{SUBTYPE_LABELS[appt.service_subtype] ?? appt.service_subtype}</p>
+              )}
+              {appt.service_subtype === 'other' && appt.service_subtype_other && (
+                <p className="text-gray-500 text-xs">“{appt.service_subtype_other}”</p>
               )}
               {appt.notes && (
                 <p className="text-gray-400 italic text-xs mt-2 border-t border-gray-100 pt-2">{appt.notes}</p>

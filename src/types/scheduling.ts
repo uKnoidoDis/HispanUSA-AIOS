@@ -44,11 +44,15 @@ export interface CopyWeekRequest {
 
 export type AppointmentType = 'personal_tax' | 'corporate_tax' | 'professional_services';
 export type ServiceSubtype =
-  | 'divorce'
   | 'immigration_consulting'
+  | 'immigration_case'
+  | 'divorce_consulting'
+  | 'divorce_case'
+  | 'bankruptcy_consulting'
+  | 'bankruptcy_case'
+  | 'offer_in_compromise_consulting'
+  | 'offer_in_compromise_case'
   | 'general_consulting'
-  | 'bankruptcy'
-  | 'offer_in_compromise'
   | 'other';
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
@@ -60,6 +64,7 @@ export interface Appointment {
   client_email: string | null;
   appointment_type: AppointmentType;
   service_subtype: ServiceSubtype | null;
+  service_subtype_other: string | null;
   date: string;
   start_time: string;
   end_time: string;

@@ -13,9 +13,13 @@ const createAppointmentSchema = z.object({
   client_email:     z.string().email().optional().nullable(),
   appointment_type: z.enum(['personal_tax', 'corporate_tax', 'professional_services']),
   service_subtype:  z.enum([
-    'divorce', 'immigration_consulting', 'general_consulting',
-    'bankruptcy', 'offer_in_compromise', 'other',
+    'immigration_consulting', 'immigration_case',
+    'divorce_consulting', 'divorce_case',
+    'bankruptcy_consulting', 'bankruptcy_case',
+    'offer_in_compromise_consulting', 'offer_in_compromise_case',
+    'general_consulting', 'other',
   ]).optional().nullable(),
+  service_subtype_other: z.string().trim().max(500).optional().nullable(),
   preparer_id:      z.string().uuid('Invalid preparer'),
   date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
   start_time:       z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM or HH:MM:SS'),
@@ -25,6 +29,9 @@ const createAppointmentSchema = z.object({
 }).refine(
   data => data.appointment_type !== 'professional_services' || !!data.service_subtype,
   { message: 'service_subtype is required for professional_services' }
+).refine(
+  data => data.service_subtype !== 'other' || !!data.service_subtype_other?.trim(),
+  { message: 'service_subtype_other is required when service_subtype is other' }
 );
 
 // ─── GET /api/appointments ─────────────────────────────────────────────────────
@@ -150,6 +157,9 @@ export async function POST(request: NextRequest) {
       client_email:         input.client_email ?? null,
       appointment_type:     input.appointment_type,
       service_subtype:      input.service_subtype ?? null,
+      service_subtype_other: input.service_subtype === 'other'
+        ? (input.service_subtype_other?.trim() || null)
+        : null,
       date:                 input.date,
       start_time:           startTime,
       end_time:             endTime,

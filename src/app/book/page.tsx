@@ -10,11 +10,15 @@ type Lang = 'en' | 'es';
 type Step = 'language' | 'type' | 'date' | 'time' | 'contact' | 'submitted';
 type ApptType = 'personal_tax' | 'corporate_tax' | 'professional_services';
 type SubType =
-  | 'divorce'
   | 'immigration_consulting'
+  | 'immigration_case'
+  | 'divorce_consulting'
+  | 'divorce_case'
+  | 'bankruptcy_consulting'
+  | 'bankruptcy_case'
+  | 'offer_in_compromise_consulting'
+  | 'offer_in_compromise_case'
   | 'general_consulting'
-  | 'bankruptcy'
-  | 'offer_in_compromise'
   | 'other';
 
 interface BookingState {
@@ -27,6 +31,7 @@ interface BookingState {
   phone:            string;
   email:            string;
   smsConsent:       boolean;
+  otherDetail:      string;   // free text when serviceSubtype === 'other'
 }
 
 // ─── Translations ─────────────────────────────────────────────────────────────
@@ -83,13 +88,19 @@ const copy = {
     },
     subtypeLabel: 'Select service type',
     subtypes: {
-      divorce:                'Divorce',
-      immigration_consulting: 'Immigration Consulting',
-      general_consulting:     'General Consulting',
-      bankruptcy:             'Bankruptcy',
-      offer_in_compromise:    'Offer in Compromise',
-      other:                  'Other',
+      immigration_consulting:         'Immigration Consulting',
+      immigration_case:               'Immigration Case',
+      divorce_consulting:             'Divorce Consulting',
+      divorce_case:                   'Divorce Case',
+      bankruptcy_consulting:          'Bankruptcy Consulting',
+      bankruptcy_case:                'Bankruptcy Case',
+      offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+      offer_in_compromise_case:       'Offer in Compromise Case',
+      general_consulting:             'General Consulting',
+      other:                          'Other',
     },
+    otherLabel:       'What do you need help with?',
+    otherPlaceholder: 'Briefly describe what you need',
     months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
     days:   ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     today:  'Today',
@@ -155,13 +166,19 @@ const copy = {
     },
     subtypeLabel: 'Seleccione el tipo de servicio',
     subtypes: {
-      divorce:                'Divorcio',
-      immigration_consulting: 'Consultoría de Inmigración',
-      general_consulting:     'Consultoría General',
-      bankruptcy:             'Bancarrota',
-      offer_in_compromise:    'Oferta de Compromiso (OIC)',
-      other:                  'Otro',
+      immigration_consulting:         'Consulta de Inmigración',
+      immigration_case:               'Caso de Inmigración',
+      divorce_consulting:             'Consulta de Divorcio',
+      divorce_case:                   'Caso de Divorcio',
+      bankruptcy_consulting:          'Consulta de Bancarrota',
+      bankruptcy_case:                'Caso de Bancarrota',
+      offer_in_compromise_consulting: 'Consulta de Oferta de Compromiso',
+      offer_in_compromise_case:       'Caso de Oferta de Compromiso',
+      general_consulting:             'Consulta General',
+      other:                          'Otro',
     },
+    otherLabel:       '¿En qué necesita ayuda?',
+    otherPlaceholder: 'Describa brevemente lo que necesita',
     months: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
     days:   ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
     today:  'Hoy',
@@ -229,6 +246,7 @@ export default function BookPage() {
     phone:           '',
     email:           '',
     smsConsent:      false,
+    otherDetail:     '',
   });
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -249,7 +267,7 @@ export default function BookPage() {
 
   // ── Step: Type ────────────────────────────────────────────────────────────
   function selectType(type: ApptType) {
-    setBooking(b => ({ ...b, appointmentType: type, serviceSubtype: null, date: null, time: null }));
+    setBooking(b => ({ ...b, appointmentType: type, serviceSubtype: null, otherDetail: '', date: null, time: null }));
     if (type !== 'professional_services') setStep('date');
   }
 
@@ -257,6 +275,11 @@ export default function BookPage() {
     if (!booking.appointmentType) return;
     if (booking.appointmentType === 'professional_services' && !booking.serviceSubtype) {
       setErrors(e => ({ ...e, subtype: t.requiredError }));
+      return;
+    }
+    // "Other" requires a free-text description of the need.
+    if (booking.serviceSubtype === 'other' && !booking.otherDetail.trim()) {
+      setErrors(e => ({ ...e, otherDetail: t.requiredError }));
       return;
     }
     setErrors({});
@@ -296,6 +319,7 @@ export default function BookPage() {
           client_email:     booking.email || null,
           appointment_type: booking.appointmentType,
           service_subtype:  booking.serviceSubtype || null,
+          service_subtype_other: booking.serviceSubtype === 'other' ? booking.otherDetail.trim() : null,
           date:             booking.date,
           start_time:       booking.time,
           language:         booking.language,
@@ -450,8 +474,9 @@ export default function BookPage() {
                     <select
                       value={booking.serviceSubtype ?? ''}
                       onChange={e => {
-                        setBooking(b => ({ ...b, serviceSubtype: (e.target.value as SubType) || null }));
-                        setErrors(err => ({ ...err, subtype: undefined }));
+                        const val = (e.target.value as SubType) || null;
+                        setBooking(b => ({ ...b, serviceSubtype: val, otherDetail: val === 'other' ? b.otherDetail : '' }));
+                        setErrors(err => ({ ...err, subtype: undefined, otherDetail: undefined }));
                       }}
                       className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 font-medium outline-none transition-colors ${
                         errors.subtype ? 'border-red-400' : 'border-gray-200 focus:border-[#03296A]'
@@ -465,6 +490,32 @@ export default function BookPage() {
                     {errors.subtype && (
                       <p className="text-red-500 text-sm mt-1">{errors.subtype}</p>
                     )}
+
+                    {/* Free-text capture when "Other" is selected */}
+                    {booking.serviceSubtype === 'other' && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                          {t.otherLabel}
+                        </label>
+                        <textarea
+                          value={booking.otherDetail}
+                          onChange={e => {
+                            setBooking(b => ({ ...b, otherDetail: e.target.value }));
+                            setErrors(err => ({ ...err, otherDetail: undefined }));
+                          }}
+                          rows={3}
+                          maxLength={500}
+                          placeholder={t.otherPlaceholder}
+                          className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors resize-none ${
+                            errors.otherDetail ? 'border-red-400' : 'border-gray-200 focus:border-[#03296A]'
+                          }`}
+                        />
+                        {errors.otherDetail && (
+                          <p className="text-red-500 text-sm mt-1">{errors.otherDetail}</p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="mt-4">
                       <button
                         onClick={confirmType}
@@ -661,7 +712,14 @@ export default function BookPage() {
                   <SummaryRow icon={<FileText className="w-4 h-4" />} label={t.types[booking.appointmentType]} />
                 )}
                 {booking.serviceSubtype && booking.appointmentType === 'professional_services' && (
-                  <SummaryRow icon={<Briefcase className="w-4 h-4" />} label={t.subtypes[booking.serviceSubtype]} />
+                  <SummaryRow
+                    icon={<Briefcase className="w-4 h-4" />}
+                    label={
+                      booking.serviceSubtype === 'other' && booking.otherDetail.trim()
+                        ? `${t.subtypes.other}: ${booking.otherDetail.trim()}`
+                        : t.subtypes[booking.serviceSubtype]
+                    }
+                  />
                 )}
                 {booking.date && (
                   <SummaryRow icon={<Calendar className="w-4 h-4" />} label={formatDateDisplay(booking.date, booking.language)} />

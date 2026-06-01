@@ -13,6 +13,7 @@ interface PendingAppt {
   client_email: string | null;
   appointment_type: 'personal_tax' | 'corporate_tax' | 'professional_services';
   service_subtype: string | null;
+  service_subtype_other: string | null;
   date: string;
   start_time: string;
   end_time: string;
@@ -28,12 +29,16 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const SUBTYPE_LABELS: Record<string, string> = {
-  divorce:                'Divorce',
-  immigration_consulting: 'Immigration Consulting',
-  general_consulting:     'General Consulting',
-  bankruptcy:             'Bankruptcy',
-  offer_in_compromise:    'Offer in Compromise',
-  other:                  'Other',
+  immigration_consulting:         'Immigration Consulting',
+  immigration_case:               'Immigration Case',
+  divorce_consulting:             'Divorce Consulting',
+  divorce_case:                   'Divorce Case',
+  bankruptcy_consulting:          'Bankruptcy Consulting',
+  bankruptcy_case:                'Bankruptcy Case',
+  offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+  offer_in_compromise_case:       'Offer in Compromise Case',
+  general_consulting:             'General Consulting',
+  other:                          'Other',
 };
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -203,6 +208,9 @@ export default function PendingPage() {
                       {appt.service_subtype && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600">
                           {SUBTYPE_LABELS[appt.service_subtype] ?? appt.service_subtype}
+                          {appt.service_subtype === 'other' && appt.service_subtype_other
+                            ? `: ${appt.service_subtype_other}`
+                            : ''}
                         </span>
                       )}
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${

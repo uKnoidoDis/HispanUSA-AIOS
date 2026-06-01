@@ -18,6 +18,7 @@ type FormState = {
   client_email:         string;
   appointment_type:     AppointmentType | '';
   service_subtype:      ServiceSubtype | '';
+  service_subtype_other: string;
   preparer_id:          string;
   date:                 string;
   start_time:           string;
@@ -35,12 +36,16 @@ const APPOINTMENT_TYPE_LABELS: Record<AppointmentType, string> = {
 };
 
 const SERVICE_SUBTYPE_LABELS: Record<ServiceSubtype, string> = {
-  divorce:                'Divorce',
-  immigration_consulting: 'Immigration Consulting',
-  general_consulting:     'General Consulting',
-  bankruptcy:             'Bankruptcy',
-  offer_in_compromise:    'Offer in Compromise',
-  other:                  'Other',
+  immigration_consulting:         'Immigration Consulting',
+  immigration_case:               'Immigration Case',
+  divorce_consulting:             'Divorce Consulting',
+  divorce_case:                   'Divorce Case',
+  bankruptcy_consulting:          'Bankruptcy Consulting',
+  bankruptcy_case:                'Bankruptcy Case',
+  offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+  offer_in_compromise_case:       'Offer in Compromise Case',
+  general_consulting:             'General Consulting',
+  other:                          'Other',
 };
 
 const INITIAL_FORM: FormState = {
@@ -49,6 +54,7 @@ const INITIAL_FORM: FormState = {
   client_email:         '',
   appointment_type:     '',
   service_subtype:      '',
+  service_subtype_other: '',
   preparer_id:          '',
   date:                 '',
   start_time:           '',
@@ -160,6 +166,9 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
     if (form.appointment_type === 'professional_services' && !form.service_subtype) {
       return setError('Select a service type for Professional Services');
     }
+    if (form.service_subtype === 'other' && !form.service_subtype_other.trim()) {
+      return setError('Describe the client’s need for "Other"');
+    }
     if (!form.preparer_id) return setError('Select a preparer');
     if (!form.date) return setError('Select a date');
 
@@ -177,6 +186,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
           client_email:         form.client_email.trim() || null,
           appointment_type:     form.appointment_type,
           service_subtype:      form.service_subtype || null,
+          service_subtype_other: form.service_subtype === 'other' ? form.service_subtype_other.trim() : null,
           preparer_id:          form.preparer_id,
           date:                 form.date,
           start_time:           selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime,
@@ -331,11 +341,11 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                     type="button"
                     onClick={() => {
                       set('appointment_type', value);
-                      set('service_subtype', '');
                       setForm(f => ({
                         ...f,
                         appointment_type: value,
                         service_subtype: '',
+                        service_subtype_other: '',
                         auto_send_checklist: value !== 'professional_services',
                       }));
                     }}
@@ -372,7 +382,10 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   </label>
                   <select
                     value={form.service_subtype}
-                    onChange={e => set('service_subtype', e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value as ServiceSubtype | '';
+                      setForm(f => ({ ...f, service_subtype: val, service_subtype_other: val === 'other' ? f.service_subtype_other : '' }));
+                    }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                     required
                   >
@@ -381,6 +394,22 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                       <option key={value} value={value}>{label}</option>
                     ))}
                   </select>
+
+                  {form.service_subtype === 'other' && (
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        What does the client need? <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={form.service_subtype_other}
+                        onChange={e => set('service_subtype_other', e.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        placeholder="Briefly describe the client’s need"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
