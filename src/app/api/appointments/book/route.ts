@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { normalizePhone } from '@/lib/utils';
 import { addThirtyMinutes } from '@/lib/availability-utils';
+import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
 
@@ -227,6 +228,25 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: apptError.message }, { status: 500 });
   }
+
+  // ── Acknowledge the request by email (best-effort) ──────────────────────────
+  // The booking already succeeded; an email failure must NOT fail the request.
+  // sendPendingMessage swallows its own send/log errors, so awaiting it is safe
+  // and never blocks the 201. Email-only for now (SMS is off until A2P approves).
+  const pendingAppt: MessagingAppt = {
+    id:                  appointment.id as string,
+    client_name:         input.client_name.trim(),
+    client_phone:        phone,
+    client_email:        input.client_email ?? null,
+    appointment_type:    input.appointment_type,
+    service_subtype:     input.service_subtype ?? null,
+    date:                input.date,
+    start_time:          startTime,
+    language:            input.language,
+    auto_send_checklist: autoSendChecklist,
+    checklist_sent:      false,
+  };
+  await sendPendingMessage(pendingAppt, supabase);
 
   return NextResponse.json(appointment, { status: 201 });
 }

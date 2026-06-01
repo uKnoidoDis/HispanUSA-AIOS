@@ -44,6 +44,7 @@ export interface SendResult {
 }
 
 type MessageType =
+  | 'pending'
   | 'confirmation'
   | 'approval'
   | 'rejection'
@@ -214,6 +215,63 @@ export async function sendConfirmationMessage(
   }
 
   return { sms: smsResult, email: emailResult };
+}
+
+/**
+ * sendPendingMessage
+ * Sends a "request received — pending confirmation" acknowledgement to the
+ * client immediately after a self-booking. The appointment is NOT yet confirmed
+ * at this point (a receptionist still has to approve it), so the copy is explicit
+ * that this acknowledges the request and is not a confirmation.
+ *
+ * EMAIL ONLY for now: SMS is intentionally not sent while the Twilio A2P 10DLC
+ * campaign is under carrier review (it would only log a failure). The SMS body
+ * is kept below, commented, so the channel can be switched on without a rewrite
+ * once A2P is approved.
+ */
+export async function sendPendingMessage(
+  appt: MessagingAppt,
+  supabase: SupabaseClient
+): Promise<SendResult> {
+  const { language: lang } = appt;
+  const dateDisplay = formatDate(appt.date);
+  const timeDisplay = formatTime(appt.start_time);
+
+  // ── Email ───────────────────────────────────────────────────────────────────
+  const subject = lang === 'es'
+    ? 'Solicitud de Cita Recibida — HispanUSA'
+    : 'Appointment Request Received — HispanUSA';
+
+  const bodyHtml = lang === 'es'
+    ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
+       <p style="margin:0 0 4px;color:#374151;">Hemos recibido su solicitud de cita. Nuestro equipo la revisará y le confirmaremos en breve. <strong>Su cita aún no está confirmada.</strong></p>
+       ${apptInfoBlock(dateDisplay, timeDisplay)}
+       <p style="margin:0 0 12px;color:#374151;">Le enviaremos una confirmación una vez que su cita sea aprobada. Si tiene preguntas, llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
+    : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
+       <p style="margin:0 0 4px;color:#374151;">We've received your appointment request. Our team will review it and confirm shortly. <strong>Your appointment is not confirmed yet.</strong></p>
+       ${apptInfoBlock(dateDisplay, timeDisplay)}
+       <p style="margin:0 0 12px;color:#374151;">You'll receive a confirmation once your appointment is approved. Questions? Call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
+
+  const emailHtml = wrapEmail(bodyHtml);
+
+  // ── SMS (disabled until A2P 10DLC approves; kept for easy re-enable) ─────────
+  // const smsBody = lang === 'es'
+  //   ? `HispanUSA: recibimos su solicitud de cita para el ${dateDisplay} a las ${timeDisplay}. Aún no está confirmada; le confirmaremos en breve. ${OFFICE_PHONE}`
+  //   : `HispanUSA: we received your appointment request for ${dateDisplay} at ${timeDisplay}. Not confirmed yet — we'll confirm shortly. ${OFFICE_PHONE}`;
+  // const smsResult = await trySendSMS(appt.client_phone, smsBody);
+  // await logMessage(supabase, appt.id, 'sms', 'pending', smsResult.sent ? 'sent' : 'failed', smsResult.error ?? undefined);
+
+  // ── Send (email only) ─────────────────────────────────────────────────────────
+  const emailResult = { sent: false, error: null as string | null };
+  if (appt.client_email) {
+    const r = await trySendEmail(appt.client_email, subject, emailHtml);
+    Object.assign(emailResult, r);
+    await logMessage(supabase, appt.id, 'email', 'pending', r.sent ? 'sent' : 'failed', r.error ?? undefined);
+  }
+
+  return { sms: { sent: false, error: null }, email: emailResult };
 }
 
 /**
