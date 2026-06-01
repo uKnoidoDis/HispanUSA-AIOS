@@ -6,7 +6,12 @@ import WeekView from './WeekView';
 import MonthView from './MonthView';
 import AppointmentSidePanel from './AppointmentSidePanel';
 import type { CalendarAppt, CalendarPreparer, CalendarViewMode } from './calendarTypes';
-import { CANCELLED_FILL, CANCELLED_BORDER } from './calendarColors';
+import {
+  CANCELLED_FILL,
+  CANCELLED_BORDER,
+  APPOINTMENT_TYPE_LEGEND,
+  PREPARER_LEGEND,
+} from './calendarColors';
 
 // ─── Date Helpers ─────────────────────────────────────────────────────────────
 
@@ -264,6 +269,67 @@ export default function CalendarView() {
         </div>
       </div>
 
+      {/* ── Legend (decode key for every block) ──────────────────────────── */}
+      <div className="px-6 py-2 bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-2">
+
+          {/* Group A: Appointment Types */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Appointment Types</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 max-w-[640px]">
+              {APPOINTMENT_TYPE_LEGEND.map(e => (
+                <span key={e.en} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 rounded-sm border border-black/15 flex-shrink-0"
+                    style={{ backgroundColor: e.color }}
+                  />
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-[11px] font-medium text-gray-700">{e.en}</span>
+                    <span className="text-[10px] text-gray-400">{e.es}</span>
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Group B: Preparers (only these two have a personal color) */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Preparers</span>
+            <div className="flex flex-col gap-1.5">
+              {PREPARER_LEGEND.map(p => (
+                <span key={p.en} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 rounded-sm border border-black/15 flex-shrink-0"
+                    style={{ backgroundColor: p.color }}
+                  />
+                  <span className="text-[11px] font-medium text-gray-700">{p.en}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Group C: Status */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                <span className="w-3 h-3 rounded-sm border border-black/15 flex-shrink-0" style={{ backgroundColor: '#64748B' }} />
+                Confirmed
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                <span className="w-3 h-3 rounded-sm border-2 border-dashed flex-shrink-0" style={{ borderColor: '#64748B' }} />
+                Pending
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                <span className="w-3 h-3 rounded-sm border-2 flex-shrink-0" style={{ backgroundColor: CANCELLED_FILL, borderColor: CANCELLED_BORDER }} />
+                Cancelled
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       {/* ── Preparer filter ────────────────────────────────────────────── */}
       {preparers.length > 0 && (
         <div className="flex items-center gap-2 px-6 py-2.5 bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto">
@@ -279,6 +345,8 @@ export default function CalendarView() {
             </button>
           )}
 
+          {/* Filter pills are a show/hide control only — neutral styling, no
+              per-preparer color (the color key lives in the legend above). */}
           {preparers.map(prep => {
             const hidden = hiddenPrepIds.has(prep.id);
             return (
@@ -288,41 +356,14 @@ export default function CalendarView() {
                 className={`inline-flex items-center justify-center px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150 flex-shrink-0 ${
                   hidden
                     ? 'border-gray-200 text-gray-400 bg-white hover:border-gray-300'
-                    : 'border-transparent text-white shadow-sm'
+                    : 'border-[#03296A] bg-[#03296A] text-white shadow-sm'
                 }`}
-                style={hidden ? {} : { backgroundColor: prep.color_hex }}
                 title={hidden ? `Show ${prep.name}` : `Hide ${prep.name}`}
               >
                 {prep.name}
               </button>
             );
           })}
-
-          {/* Status legend — the 3 status treatments. The preparer color
-              legend (dot + name) is the filter pills to the left. */}
-          <div className="ml-auto pl-4 flex items-center gap-3 flex-shrink-0 border-l border-gray-200">
-            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-              <span
-                className="w-4 h-4 rounded-sm inline-block flex-shrink-0 border border-black/10"
-                style={{ backgroundColor: '#64748B' }}
-              />
-              Confirmed
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-              <span
-                className="w-4 h-4 rounded-sm inline-block flex-shrink-0 border-2 border-dashed"
-                style={{ borderColor: '#64748B' }}
-              />
-              Pending
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-              <span
-                className="w-4 h-4 rounded-sm inline-block flex-shrink-0 border-2"
-                style={{ backgroundColor: CANCELLED_FILL, borderColor: CANCELLED_BORDER }}
-              />
-              Cancelled
-            </div>
-          </div>
         </div>
       )}
 

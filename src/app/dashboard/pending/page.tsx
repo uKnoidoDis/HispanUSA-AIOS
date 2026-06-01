@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Check, X, Clock, Phone, Mail, Calendar, User, RefreshCw, Inbox } from 'lucide-react';
 import { formatDate, formatTime, formatPhone } from '@/lib/utils';
+import { appointmentColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ export default function PendingPage() {
                         <div className="flex items-center gap-1.5 text-xs text-gray-400">
                           <span
                             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: appt.preparer.color_hex }}
+                            style={{ backgroundColor: appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer.id) }}
                           />
                           <User className="w-3 h-3" />
                           {appt.preparer.name}

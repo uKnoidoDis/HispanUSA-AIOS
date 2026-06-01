@@ -8,6 +8,7 @@ import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
 import { formatTime } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
+import { appointmentColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -290,7 +291,7 @@ export default function DashboardPage() {
                         <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
                           <span
                             className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: appt.preparer.color_hex }}
+                            style={{ backgroundColor: appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id) }}
                           />
                           <span className="text-xs text-gray-500 font-medium">
                             {appt.preparer.name}

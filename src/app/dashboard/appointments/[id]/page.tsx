@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import { formatTime } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
+import { appointmentColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -277,7 +278,7 @@ export default function AppointmentDetailPage({
             <div className="flex items-center gap-2 mb-3">
               <span
                 className="h-3 w-3 rounded-full flex-shrink-0"
-                style={{ backgroundColor: appt.preparer.color_hex }}
+                style={{ backgroundColor: appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id) }}
               />
               <span className="text-sm font-medium text-gray-900">{appt.preparer.name}</span>
             </div>

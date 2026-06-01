@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import type { CalendarAppt } from './calendarTypes';
 import {
   readableTextColor,
+  appointmentColor,
   CANCELLED_FILL,
   CANCELLED_BORDER,
   CANCELLED_TEXT,
@@ -117,13 +118,14 @@ export default function MonthView({
                 {/* Appointment chips */}
                 <div className="space-y-0.5">
                   {dayAppts.slice(0, maxVisible).map(appt => {
-                    const prepColor   = appt.preparer?.color_hex ?? '#94A3B8';
+                    const baseColor   = appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id);
                     const isPending   = appt.status === 'pending';
                     const isCancelled = appt.status === 'cancelled';
 
-                    // Preparer = fill, status = border. Cancelled overrides with muted red.
-                    const fill      = isCancelled ? CANCELLED_FILL : prepColor;
-                    const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(prepColor);
+                    // Type/subtype (Oraise/Emely keep a personal color) = fill, status = border.
+                    // Cancelled overrides with muted red.
+                    const fill      = isCancelled ? CANCELLED_FILL : baseColor;
+                    const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(baseColor);
 
                     const chipStyle: React.CSSProperties = { backgroundColor: fill };
                     if (isCancelled) {

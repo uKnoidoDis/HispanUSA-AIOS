@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Phone, Mail, User, Clock, Tag, MessageSquare, Globe, ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 import { formatTime, formatPhone, formatDate } from '@/lib/utils';
 import type { CalendarAppt, CalendarPreparer, CalendarApptDetail, CalendarMessage } from './calendarTypes';
+import { preparerDotColor } from './calendarColors';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -223,7 +224,7 @@ export default function AppointmentSidePanel({
                 {selectedPreparer && (
                   <span
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: selectedPreparer.color_hex }}
+                    style={{ backgroundColor: preparerDotColor(selectedPreparer.id) }}
                   />
                 )}
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400" />

@@ -21,23 +21,21 @@ export const SERVICE_SUBTYPE_VALUES: ServiceSubtype[] = [
 ];
 
 /**
- * Source of truth for subtype colors.
- *
- * NOT yet wired into any UI — the calendar and pending views currently color by
- * PREPARER, not by subtype. This constant exists so the separate calendar
- * color-recode prompt can consume it. The light-orange / light-green / light-pink
- * hexes are PROVISIONAL (Troy specified hexes only for teal / amber / slate);
- * finalize them during the recode.
+ * Source of truth for subtype colors — FINAL values, locked in the calendar
+ * color recode (Chat #16). Consumed by `appointmentColor()` in
+ * `src/components/calendar/calendarColors.ts` to color appointment blocks/chips
+ * and the appointment dots in list views. Consulting + Case within a service
+ * share a color.
  */
 export const SERVICE_SUBTYPE_COLORS: Record<ServiceSubtype, string> = {
   immigration_consulting:         '#FB923C', // light orange
   immigration_case:               '#FB923C', // light orange
-  divorce_consulting:             '#4ADE80', // light green
-  divorce_case:                   '#4ADE80', // light green
+  divorce_consulting:             '#86EFAC', // light green
+  divorce_case:                   '#86EFAC', // light green
   bankruptcy_consulting:          '#14B8A6', // teal
   bankruptcy_case:                '#14B8A6', // teal
-  offer_in_compromise_consulting: '#F59E0B', // amber
-  offer_in_compromise_case:       '#F59E0B', // amber
+  offer_in_compromise_consulting: '#EAB308', // gold
+  offer_in_compromise_case:       '#EAB308', // gold
   general_consulting:             '#F9A8D4', // light pink
   other:                          '#64748B', // slate
 };

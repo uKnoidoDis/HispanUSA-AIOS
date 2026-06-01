@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { normalizePhone } from '@/lib/utils';
 import { addThirtyMinutes, formatTimeDisplay } from '@/lib/availability-utils';
 import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
+import { preparerDotColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -445,7 +446,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                       className="h-3 w-3 rounded-full block"
                       style={{
                         backgroundColor: selectedPreparer
-                          ? selectedPreparer.color_hex
+                          ? preparerDotColor(selectedPreparer.id)
                           : '#D1D5DB',
                       }}
                     />

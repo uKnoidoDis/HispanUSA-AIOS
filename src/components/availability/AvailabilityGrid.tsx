@@ -4,6 +4,7 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import type { Preparer, SlotWithMeta } from '@/types/scheduling';
 import { formatTimeDisplay, slotKey, addThirtyMinutes } from '@/lib/availability-utils';
+import { preparerDotColor } from '@/components/calendar/calendarColors';
 
 // -----------------------------------------------------------------------
 // Lock icon (inline — no external icon library)
@@ -207,7 +208,7 @@ export default function AvailabilityGrid({
                     isLoading={isLoading}
                     isToday={isToday}
                     isHourBoundary={isHourBoundary}
-                    preparerColor={selectedPreparer.color_hex}
+                    preparerColor={preparerDotColor(selectedPreparer.id)}
                     run={slot && !slot.is_booked ? runInfo.get(key) ?? null : null}
                     onClick={() => onCellClick(dateStr, startTime, slot)}
                   />

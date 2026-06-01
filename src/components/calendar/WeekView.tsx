@@ -5,6 +5,7 @@ import { formatTime } from '@/lib/utils';
 import type { CalendarAppt } from './calendarTypes';
 import {
   readableTextColor,
+  appointmentColor,
   CANCELLED_FILL,
   CANCELLED_BORDER,
   CANCELLED_TEXT,
@@ -241,16 +242,16 @@ export default function WeekView({
 
                 {/* Appointment blocks */}
                 {positioned.map(({ appt, top, height, leftFrac, widthFrac }) => {
-                  const prepColor   = appt.preparer?.color_hex ?? '#94A3B8';
+                  const baseColor   = appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id);
                   const isPending   = appt.status === 'pending';
                   const isCancelled = appt.status === 'cancelled';
                   const isSelected  = appt.id === selectedId;
                   const typeLabel   = TYPE_LABELS[appt.appointment_type] ?? '';
 
-                  // Two dimensions: preparer = fill, status = border/badge.
-                  // Cancelled overrides the preparer color with a muted red treatment.
-                  const fill      = isCancelled ? CANCELLED_FILL : prepColor;
-                  const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(prepColor);
+                  // Two dimensions: appointment type/subtype (Oraise/Emely keep a personal
+                  // color) = fill, status = border/badge. Cancelled overrides with muted red.
+                  const fill      = isCancelled ? CANCELLED_FILL : baseColor;
+                  const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(baseColor);
 
                   const blockStyle: React.CSSProperties = {
                     top:    `${top + 1}px`,
