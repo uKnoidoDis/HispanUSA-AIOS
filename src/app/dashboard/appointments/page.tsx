@@ -9,7 +9,6 @@ import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
 import { formatTime } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
-import { appointmentColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -300,13 +299,7 @@ export default function AppointmentsPage() {
                     </TableCell>
                     <TableCell>
                       {appt.preparer ? (
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id) }}
-                          />
-                          <span className="text-gray-700">{appt.preparer.name}</span>
-                        </div>
+                        <span className="text-gray-700">{appt.preparer.name}</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}

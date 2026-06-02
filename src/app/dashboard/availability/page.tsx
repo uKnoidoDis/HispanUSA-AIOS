@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { addDays, format } from 'date-fns';
 import AvailabilityGrid, { AvailabilityGridSkeleton } from '@/components/availability/AvailabilityGrid';
-import { preparerDotColor } from '@/components/calendar/calendarColors';
 import ToastContainer, { type ToastItem, type ToastType } from '@/components/ui/Toast';
 import {
   isTaxSeason,
@@ -112,7 +111,7 @@ function PreparerSelect({
       >
         <span
           className="h-3 w-3 rounded-full flex-shrink-0 border border-white shadow-sm"
-          style={{ backgroundColor: selected ? preparerDotColor(selected.id) : '#D1D5DB' }}
+          style={{ backgroundColor: selected ? '#03296A' : '#D1D5DB' }}
         />
         <span className={selected ? '' : 'text-gray-400'}>
           {selected?.name ?? 'Select preparer'}
@@ -145,7 +144,7 @@ function PreparerSelect({
                 >
                   <span
                     className="h-3 w-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: preparerDotColor(p.id) }}
+                    style={{ backgroundColor: '#03296A' }}
                   />
                   {p.name}
                   {active && <CheckIcon className="h-4 w-4 ml-auto text-[#03296A]" />}
@@ -273,7 +272,7 @@ export default function AvailabilityPage() {
           is_booked: false,
           created_at: new Date().toISOString(),
           preparer_name: selectedPreparer.name,
-          preparer_color: preparerDotColor(selectedPreparer.id),
+          preparer_color: '#03296A',
           client_name: null,
         };
         setSlots(prev => new Map(prev).set(key, optimistic));
@@ -765,7 +764,7 @@ export default function AvailabilityPage() {
               <span className="flex items-center gap-1.5">
                 <span
                   className="h-3 w-3 rounded-sm inline-block border border-black/10"
-                  style={{ backgroundColor: preparerDotColor(selectedPreparer.id) }}
+                  style={{ backgroundColor: '#03296A' }}
                 />
                 Open
               </span>
@@ -804,7 +803,7 @@ export default function AvailabilityPage() {
                     <button
                       key={p.id}
                       onClick={() => setSelectedPreparer(p)}
-                      style={{ backgroundColor: preparerDotColor(p.id), color: '#FFFFFF', textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+                      style={{ backgroundColor: '#03296A', color: '#FFFFFF', textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
                       className="min-w-[160px] px-6 py-4 rounded-xl text-lg font-semibold shadow-sm hover:brightness-95 active:brightness-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#03296A]"
                     >
                       {p.name}

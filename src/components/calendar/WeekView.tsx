@@ -117,10 +117,16 @@ export default function WeekView({
   // key={viewMode} on this component remounts it when switching into Day/Week,
   // so this fires on view entry but never fights the user's later scrolling).
   const scrollRef = useRef<HTMLDivElement>(null);
+  const eightRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = Math.max(0, (8 - startHour) * 60 * PX_PER_MIN);
-    }
+    const scroller = scrollRef.current;
+    const row = eightRef.current;
+    if (!scroller || !row) return;
+    // Mirror the availability grid: measure the real 8 AM row and scroll it near
+    // the top of the viewport. Robust to layout timing — unlike a computed pixel
+    // offset, which lands at the top when the container isn't yet scrollable at
+    // effect time.
+    scroller.scrollTop += row.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 8;
   }, [startHour]);
 
   // Group visible appointments by date
@@ -194,17 +200,21 @@ export default function WeekView({
 
           {/* Time axis */}
           <div className="w-16 flex-shrink-0 relative border-r border-gray-200 bg-white">
-            {timeLabels.map(({ label, top, onHour }, i) => (
-              <div
-                key={i}
-                className="absolute right-0 left-0 flex justify-end pr-2"
-                style={{ top: top - 9 }}
-              >
-                <span className={`text-[11px] leading-none ${onHour ? 'text-gray-500 font-medium' : 'text-gray-400'}`}>
-                  {label}
-                </span>
-              </div>
-            ))}
+            {timeLabels.map(({ label, top, onHour }, i) => {
+              const isEight = startHour * 60 + i * 30 === 8 * 60;
+              return (
+                <div
+                  key={i}
+                  ref={isEight ? eightRef : undefined}
+                  className="absolute right-0 left-0 flex justify-end pr-2"
+                  style={{ top: top - 9 }}
+                >
+                  <span className={`text-[11px] leading-none ${onHour ? 'text-gray-500 font-medium' : 'text-gray-400'}`}>
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Day columns */}
