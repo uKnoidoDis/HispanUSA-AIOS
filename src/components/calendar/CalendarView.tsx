@@ -6,6 +6,12 @@ import WeekView from './WeekView';
 import MonthView from './MonthView';
 import AppointmentSidePanel from './AppointmentSidePanel';
 import type { CalendarAppt, CalendarPreparer, CalendarViewMode } from './calendarTypes';
+import {
+  CANCELLED_FILL,
+  CANCELLED_BORDER,
+  APPOINTMENT_TYPE_LEGEND,
+  PREPARER_LEGEND,
+} from './calendarColors';
 
 // ─── Date Helpers ─────────────────────────────────────────────────────────────
 
@@ -72,9 +78,9 @@ export default function CalendarView() {
 
   // Derived values
   const taxSeason = isTaxSeason(currentDate);
-  const startHour = 9;
-  const endHour   = taxSeason ? 19 : 17;
-  const numDays   = viewMode === 'day' ? 1 : (taxSeason ? 6 : 5);
+  const startHour = 5;
+  const endHour   = 22;
+  const numDays   = viewMode === 'day' ? 1 : 7;
 
   // Memoized so useCallback deps get stable references — prevents infinite refetch loop
   // (plain `new Date()` creates a new object reference every render, causing the callback
@@ -199,7 +205,6 @@ export default function CalendarView() {
     return formatWeekRange(days[0], days[days.length - 1]);
   }, [viewMode, currentDate, days]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
   const isThisWeek = toDateStr(weekStart) === toDateStr(getWeekStart(new Date()));
 
   return (
@@ -263,6 +268,67 @@ export default function CalendarView() {
         </div>
       </div>
 
+      {/* ── Legend (decode key for every block) ──────────────────────────── */}
+      <div className="px-6 py-2 bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-2">
+
+          {/* Group A: Appointment Types */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Appointment Types</span>
+            <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+              {APPOINTMENT_TYPE_LEGEND.map(e => (
+                <span key={e.en} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 rounded-sm border border-black/15 flex-shrink-0"
+                    style={{ backgroundColor: e.color }}
+                  />
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-[11px] font-medium text-gray-700">{e.en}</span>
+                    <span className="text-[10px] text-gray-400">{e.es}</span>
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Group B: Preparers (only these two have a personal color) */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Preparers</span>
+            <div className="flex flex-col gap-1.5">
+              {PREPARER_LEGEND.map(p => (
+                <span key={p.en} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 rounded-sm border border-black/15 flex-shrink-0"
+                    style={{ backgroundColor: p.color }}
+                  />
+                  <span className="text-[11px] font-medium text-gray-700">{p.en}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Group C: Status */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                <span className="w-4 h-4 rounded-sm border border-black/15 flex-shrink-0" style={{ backgroundColor: '#64748B' }} />
+                Confirmed
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                <span className="w-4 h-4 rounded-sm border-2 border-dashed flex-shrink-0" style={{ borderColor: '#64748B' }} />
+                Pending
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                <span className="w-4 h-4 rounded-sm border-2 flex-shrink-0" style={{ backgroundColor: CANCELLED_FILL, borderColor: CANCELLED_BORDER }} />
+                Cancelled
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       {/* ── Preparer filter ────────────────────────────────────────────── */}
       {preparers.length > 0 && (
         <div className="flex items-center gap-2 px-6 py-2.5 bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto">
@@ -278,40 +344,25 @@ export default function CalendarView() {
             </button>
           )}
 
+          {/* Filter pills are a show/hide control only — neutral styling, no
+              per-preparer color (the color key lives in the legend above). */}
           {preparers.map(prep => {
             const hidden = hiddenPrepIds.has(prep.id);
             return (
               <button
                 key={prep.id}
                 onClick={() => togglePreparer(prep.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150 flex-shrink-0 ${
+                className={`inline-flex items-center justify-center px-3 py-1 rounded-md text-xs font-semibold border transition-all duration-150 flex-shrink-0 ${
                   hidden
                     ? 'border-gray-200 text-gray-400 bg-white hover:border-gray-300'
-                    : 'border-transparent text-white shadow-sm'
+                    : 'border-[#03296A] bg-[#03296A] text-white shadow-sm'
                 }`}
-                style={hidden ? {} : { backgroundColor: prep.color_hex }}
                 title={hidden ? `Show ${prep.name}` : `Hide ${prep.name}`}
               >
-                <span
-                  className={`w-2 h-2 rounded-full flex-shrink-0 ${hidden ? 'opacity-30' : ''}`}
-                  style={{ backgroundColor: hidden ? prep.color_hex : 'rgba(255,255,255,0.7)' }}
-                />
                 {prep.name}
               </button>
             );
           })}
-
-          {/* Legend key */}
-          <div className="ml-auto pl-4 flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-              <span className="w-4 h-4 rounded border-2 border-dashed border-gray-300 inline-block flex-shrink-0" />
-              Pending
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-              <span className="w-4 h-4 rounded border-l-[3px] border-gray-400 bg-gray-100 inline-block flex-shrink-0" />
-              Confirmed
-            </div>
-          </div>
         </div>
       )}
 
@@ -352,6 +403,7 @@ export default function CalendarView() {
             />
           ) : (
             <WeekView
+              key={viewMode}
               days={days}
               startHour={startHour}
               endHour={endHour}

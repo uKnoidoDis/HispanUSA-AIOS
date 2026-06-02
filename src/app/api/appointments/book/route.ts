@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { normalizePhone } from '@/lib/utils';
+import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
 import { addThirtyMinutes } from '@/lib/availability-utils';
+import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
 
@@ -17,9 +18,13 @@ const bookSchema = z.object({
   client_email:     z.string().email('Invalid email').optional().nullable(),
   appointment_type: z.enum(['personal_tax', 'corporate_tax', 'professional_services']),
   service_subtype:  z.enum([
-    'divorce', 'immigration_consulting', 'general_consulting',
-    'bankruptcy', 'offer_in_compromise', 'other',
+    'immigration_consulting', 'immigration_case',
+    'divorce_consulting', 'divorce_case',
+    'bankruptcy_consulting', 'bankruptcy_case',
+    'offer_in_compromise_consulting', 'offer_in_compromise_case',
+    'general_consulting', 'other',
   ]).optional().nullable(),
+  service_subtype_other: z.string().trim().max(500).optional().nullable(),
   date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
   start_time:       z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM or HH:MM:SS'),
   language:         z.enum(['en', 'es']).default('es'),
@@ -27,6 +32,10 @@ const bookSchema = z.object({
 }).refine(
   data => data.appointment_type !== 'professional_services' || !!data.service_subtype,
   { message: 'service_subtype is required for professional_services' }
+).refine(
+  // When the client picks "Other", they must describe their need (free text).
+  data => data.service_subtype !== 'other' || !!data.service_subtype_other?.trim(),
+  { message: 'service_subtype_other is required when service_subtype is other' }
 );
 
 // Extracts the client IP from proxy headers. Never trusts a client-supplied
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
   const phone = normalizePhone(input.client_phone);
 
   // ── Rate limit: max 5 booking requests per phone per calendar day ──────────
-  const today = new Date().toISOString().slice(0, 10);
+  const today = easternDateString();
   const { count } = await supabase
     .from('appointments')
     .select('id', { count: 'exact', head: true })
@@ -98,6 +107,16 @@ export async function POST(request: NextRequest) {
   // ── Validate requested date is not in the past ─────────────────────────────
   if (input.date < today) {
     return NextResponse.json({ error: 'Cannot book appointments in the past' }, { status: 400 });
+  }
+
+  // ── Reject same-day slots whose start time has already passed ───────────────
+  // Server backstop so a direct POST can't bypass the read-path expiry filter.
+  // For corporate, the first slot's start passing is sufficient to reject.
+  if (!isBookableEastern(input.date, startTime)) {
+    return NextResponse.json(
+      { error: 'Cannot book a time that has already passed. Please choose a later time.' },
+      { status: 400 },
+    );
   }
 
   // ── Find an available preparer (first one with all required slots free) ─────
@@ -199,6 +218,9 @@ export async function POST(request: NextRequest) {
       client_email:         input.client_email ?? null,
       appointment_type:     input.appointment_type,
       service_subtype:      input.service_subtype ?? null,
+      service_subtype_other: input.service_subtype === 'other'
+        ? (input.service_subtype_other?.trim() || null)
+        : null,
       date:                 input.date,
       start_time:           startTime,
       end_time:             endTime,
@@ -227,6 +249,25 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: apptError.message }, { status: 500 });
   }
+
+  // ── Acknowledge the request by email (best-effort) ──────────────────────────
+  // The booking already succeeded; an email failure must NOT fail the request.
+  // sendPendingMessage swallows its own send/log errors, so awaiting it is safe
+  // and never blocks the 201. Email-only for now (SMS is off until A2P approves).
+  const pendingAppt: MessagingAppt = {
+    id:                  appointment.id as string,
+    client_name:         input.client_name.trim(),
+    client_phone:        phone,
+    client_email:        input.client_email ?? null,
+    appointment_type:    input.appointment_type,
+    service_subtype:     input.service_subtype ?? null,
+    date:                input.date,
+    start_time:          startTime,
+    language:            input.language,
+    auto_send_checklist: autoSendChecklist,
+    checklist_sent:      false,
+  };
+  await sendPendingMessage(pendingAppt, supabase);
 
   return NextResponse.json(appointment, { status: 201 });
 }

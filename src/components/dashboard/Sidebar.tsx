@@ -14,16 +14,30 @@ import {
   LogOut,
   Hourglass,
   ShieldCheck,
+  Settings,
+  type LucideIcon,
 } from 'lucide-react';
 
-const navItems = [
-  { href: '/dashboard',              label: 'Overview',        icon: LayoutDashboard },
-  { href: '/dashboard/calendar',     label: 'Calendar',        icon: Calendar },
-  { href: '/dashboard/appointments', label: 'Appointments',    icon: ClipboardList },
-  { href: '/dashboard/pending',      label: 'Pending',         icon: Hourglass, showBadge: true },
-  { href: '/dashboard/availability', label: 'Availability',    icon: Clock },
-  { href: '/dashboard/clients',      label: 'Clients',         icon: Users },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  showBadge?: boolean;
+  adminOnly?: boolean;
+};
+
+const primaryNavItems: NavItem[] = [
+  { href: '/dashboard',              label: 'Overview',     icon: LayoutDashboard },
+  { href: '/dashboard/calendar',     label: 'Calendar',     icon: Calendar },
+  { href: '/dashboard/availability', label: 'Availability', icon: Clock },
+  { href: '/dashboard/appointments', label: 'Appointments', icon: ClipboardList },
+  { href: '/dashboard/pending',      label: 'Pending',      icon: Hourglass, showBadge: true },
+  { href: '/dashboard/clients',      label: 'Clients',      icon: Users },
+];
+
+const bottomNavItems: NavItem[] = [
   { href: '/dashboard/admin/users',  label: 'User Management', icon: ShieldCheck, adminOnly: true },
+  { href: '/dashboard/settings',     label: 'Settings',        icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -102,9 +116,44 @@ export default function Sidebar() {
   })();
 
   const isAdminViewer = userRole === 'owner' || userRole === 'admin';
-  const visibleNavItems = navItems.filter(
+  const visiblePrimary = primaryNavItems.filter(
     (item) => !item.adminOnly || isAdminViewer
   );
+  const visibleBottom = bottomNavItems.filter(
+    (item) => !item.adminOnly || isAdminViewer
+  );
+
+  const renderNavLink = (item: NavItem) => {
+    const Icon = item.icon;
+    const isActive =
+      item.href === '/dashboard'
+        ? pathname === '/dashboard'
+        : pathname.startsWith(item.href);
+
+    const count = item.showBadge ? (pendingCount ?? 0) : 0;
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={`
+          flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150
+          ${isActive
+            ? 'bg-white/10 text-white border-l-[3px] border-l-[#C1282D] ml-0 pl-[9px]'
+            : 'text-gray-400 hover:bg-white/[0.07] hover:text-gray-200 border-l-[3px] border-l-transparent ml-0 pl-[9px]'
+          }
+        `}
+      >
+        <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
+        <span className="flex-1">{item.label}</span>
+        {item.showBadge && count > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#D4932A] text-white text-xs font-bold leading-none">
+            {count > 99 ? '99+' : count}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   const sidebarContent = (
     <>
@@ -125,38 +174,13 @@ export default function Sidebar() {
       )}
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {visibleNavItems.map(item => {
-          const Icon = item.icon;
-          const isActive =
-            item.href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(item.href);
-
-          const count = item.showBadge ? (pendingCount ?? 0) : 0;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150
-                ${isActive
-                  ? 'bg-white/10 text-white border-l-[3px] border-l-[#C1282D] ml-0 pl-[9px]'
-                  : 'text-gray-400 hover:bg-white/[0.07] hover:text-gray-200 border-l-[3px] border-l-transparent ml-0 pl-[9px]'
-                }
-              `}
-            >
-              <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
-              <span className="flex-1">{item.label}</span>
-              {item.showBadge && count > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#D4932A] text-white text-xs font-bold leading-none">
-                  {count > 99 ? '99+' : count}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 py-4 flex flex-col">
+        <div className="space-y-1">
+          {visiblePrimary.map(renderNavLink)}
+        </div>
+        <div className="mt-auto pt-4 border-t border-white/10 space-y-1">
+          {visibleBottom.map(renderNavLink)}
+        </div>
       </nav>
 
       {/* Footer */}
@@ -222,7 +246,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 min-h-screen bg-[#03296A] text-white flex-col flex-shrink-0">
+      <aside className="hidden lg:flex w-60 h-screen sticky top-0 bg-[#03296A] text-white flex-col flex-shrink-0">
         {sidebarContent}
       </aside>
     </>

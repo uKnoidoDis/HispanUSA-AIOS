@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import { formatTime } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
+import { appointmentColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,12 +34,16 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const SUBTYPE_LABELS: Record<string, string> = {
-  divorce:                'Divorce',
-  immigration_consulting: 'Immigration Consulting',
-  general_consulting:     'General Consulting',
-  bankruptcy:             'Bankruptcy',
-  offer_in_compromise:    'Offer in Compromise',
-  other:                  'Other',
+  immigration_consulting:         'Immigration Consulting',
+  immigration_case:               'Immigration Case',
+  divorce_consulting:             'Divorce Consulting',
+  divorce_case:                   'Divorce Case',
+  bankruptcy_consulting:          'Bankruptcy Consulting',
+  bankruptcy_case:                'Bankruptcy Case',
+  offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+  offer_in_compromise_case:       'Offer in Compromise Case',
+  general_consulting:             'General Consulting',
+  other:                          'Other',
 };
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: string }> = {
@@ -246,6 +251,9 @@ export default function AppointmentDetailPage({
               {appt.service_subtype && (
                 <p className="text-gray-500 text-xs">{SUBTYPE_LABELS[appt.service_subtype] ?? appt.service_subtype}</p>
               )}
+              {appt.service_subtype === 'other' && appt.service_subtype_other && (
+                <p className="text-gray-500 text-xs">“{appt.service_subtype_other}”</p>
+              )}
               {appt.notes && (
                 <p className="text-gray-400 italic text-xs mt-2 border-t border-gray-100 pt-2">{appt.notes}</p>
               )}
@@ -270,7 +278,7 @@ export default function AppointmentDetailPage({
             <div className="flex items-center gap-2 mb-3">
               <span
                 className="h-3 w-3 rounded-full flex-shrink-0"
-                style={{ backgroundColor: appt.preparer.color_hex }}
+                style={{ backgroundColor: appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id) }}
               />
               <span className="text-sm font-medium text-gray-900">{appt.preparer.name}</span>
             </div>

@@ -18,7 +18,14 @@ export async function GET() {
     .eq('booked_by', 'client')
     .order('created_at', { ascending: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // no-store: this list must always reflect live DB state. force-dynamic stops
+  // Next's server-side caching, but the HTTP response itself must also be
+  // uncacheable so the browser/CDN never serves a stale queue (a freshly-pending
+  // booking was being hidden, and approved rows weren't dropping). Also keeps the
+  // sidebar badge — which polls this same endpoint — accurate.
+  const noStore = { 'Cache-Control': 'no-store' };
 
-  return NextResponse.json({ count: count ?? 0, items: data ?? [] });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: noStore });
+
+  return NextResponse.json({ count: count ?? 0, items: data ?? [] }, { headers: noStore });
 }

@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Plus, Clock, Calendar, ChevronRight } from 'lucide-react';
 import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
-import { formatTime } from '@/lib/utils';
+import { formatTime, easternDateString } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
+import { appointmentColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: strin
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return easternDateString();
 }
 
 function getGreeting(): string {
@@ -168,7 +169,7 @@ export default function DashboardPage() {
               <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#F59E0B]" />
               <p className="text-[11px] text-gray-400 uppercase font-semibold tracking-wide mb-1">Pending</p>
               <div className="flex items-center gap-2">
-                <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-[#F59E0B]' : 'text-gray-400'}`}>
+                <p className="text-3xl font-bold text-[#F59E0B]">
                   {loading ? '—' : pendingCount}
                 </p>
                 {pendingCount > 0 && (
@@ -290,7 +291,7 @@ export default function DashboardPage() {
                         <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
                           <span
                             className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: appt.preparer.color_hex }}
+                            style={{ backgroundColor: appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id) }}
                           />
                           <span className="text-xs text-gray-500 font-medium">
                             {appt.preparer.name}

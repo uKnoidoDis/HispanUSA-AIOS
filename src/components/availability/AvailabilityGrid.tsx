@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import type { Preparer, SlotWithMeta } from '@/types/scheduling';
-import { formatTimeDisplay, slotKey } from '@/lib/availability-utils';
+import { formatTimeDisplay, slotKey, addThirtyMinutes } from '@/lib/availability-utils';
 
 // -----------------------------------------------------------------------
 // Lock icon (inline — no external icon library)
@@ -27,19 +27,40 @@ function LockIcon({ className }: { className?: string }) {
   );
 }
 
+// Find the nearest scrollable ancestor (robust to the page/layout owning the scroll)
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let p = el?.parentElement ?? null;
+  while (p) {
+    const oy = getComputedStyle(p).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+    p = p.parentElement;
+  }
+  return (document.scrollingElement as HTMLElement) ?? document.documentElement;
+}
+
+// Approx. height of the sticky header row — used so ~8 AM lands just below it.
+const HEADER_OFFSET = 56;
+
 // -----------------------------------------------------------------------
 // Grid props
 // -----------------------------------------------------------------------
 interface AvailabilityGridProps {
   weekDays: Date[];
-  timeSlots: string[];     // e.g. ['09:00:00', '09:30:00', ...]
+  timeSlots: string[];     // e.g. ['05:00:00', '05:30:00', ...]
   slots: Map<string, SlotWithMeta>;
   selectedPreparer: Preparer;
   loadingCells: Set<string>;
   onCellClick: (date: string, startTime: string, slot: SlotWithMeta | null) => void;
 }
 
-const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// Per-cell membership inside a contiguous run of open (unbooked) slots.
+type RunPos = 'single' | 'start' | 'mid' | 'end';
+interface RunInfo {
+  pos: RunPos;
+  label: string; // e.g. "9:00 AM – 5:00 PM"
+}
 
 // -----------------------------------------------------------------------
 // Main grid component
@@ -58,8 +79,57 @@ export default function AvailabilityGrid({
   // Time column is 72px; each day column splits the remaining space equally
   const gridTemplate = `72px repeat(${colCount}, minmax(80px, 1fr))`;
 
+  // ── Auto-scroll to ~8 AM on mount (initial position only) ─────────────
+  const eightRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = eightRef.current;
+    if (!row) return;
+    const scroller = getScrollParent(row);
+    if (!scroller) return;
+    const scrollerTop =
+      scroller === document.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
+    const rowTop = row.getBoundingClientRect().top;
+    scroller.scrollTop += rowTop - scrollerTop - HEADER_OFFSET;
+  }, []);
+
+  // ── Compute contiguous open-slot runs per day (visual merge) ──────────
+  const runInfo = useMemo(() => {
+    const info = new Map<string, RunInfo>();
+
+    for (const day of weekDays) {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      let runStart = -1; // index into timeSlots where the current run began
+
+      const flush = (endIdx: number) => {
+        if (runStart < 0) return;
+        const startTime = timeSlots[runStart];
+        const endTime = addThirtyMinutes(timeSlots[endIdx]);
+        const label = `${formatTimeDisplay(startTime)} – ${formatTimeDisplay(endTime)}`;
+        for (let i = runStart; i <= endIdx; i++) {
+          const pos: RunPos =
+            runStart === endIdx ? 'single' : i === runStart ? 'start' : i === endIdx ? 'end' : 'mid';
+          info.set(slotKey(dateStr, timeSlots[i]), { pos, label });
+        }
+        runStart = -1;
+      };
+
+      timeSlots.forEach((t, idx) => {
+        const slot = slots.get(slotKey(dateStr, t));
+        const isOpen = !!slot && !slot.is_booked;
+        if (isOpen) {
+          if (runStart < 0) runStart = idx;
+        } else {
+          flush(idx - 1);
+        }
+      });
+      flush(timeSlots.length - 1);
+    }
+
+    return info;
+  }, [weekDays, timeSlots, slots]);
+
   return (
-    <div className="overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="min-w-fit">
         {/* ── Header row ─────────────────────────────────────────────── */}
         <div
@@ -101,26 +171,25 @@ export default function AvailabilityGrid({
 
         {/* ── Time rows ──────────────────────────────────────────────── */}
         {timeSlots.map(startTime => {
-          // Show the time label only on the hour, not the half-hour
           const isHourBoundary = startTime.endsWith(':00:00');
+          const isEightAm = startTime === '08:00:00';
 
           return (
             <div
               key={startTime}
-              className={`
-                grid border-b border-gray-100 last:border-b-0
-                ${isHourBoundary ? 'border-t border-t-gray-200' : ''}
-              `}
+              ref={isEightAm ? eightRef : undefined}
+              className="grid"
               style={{ gridTemplateColumns: gridTemplate }}
             >
-              {/* Time gutter */}
+              {/* Time gutter — label every half-hour */}
               <div
                 className={`
                   flex items-center justify-end pr-3 h-10 border-r border-gray-100 flex-shrink-0
-                  text-xs ${isHourBoundary ? 'font-medium text-gray-500' : 'text-gray-300'}
+                  border-b border-gray-100 ${isHourBoundary ? 'border-t border-gray-200' : ''}
+                  text-xs ${isHourBoundary ? 'font-medium text-gray-500' : 'text-gray-400'}
                 `}
               >
-                {isHourBoundary ? formatTimeDisplay(startTime) : ''}
+                {formatTimeDisplay(startTime)}
               </div>
 
               {/* One cell per day */}
@@ -137,7 +206,9 @@ export default function AvailabilityGrid({
                     slot={slot}
                     isLoading={isLoading}
                     isToday={isToday}
-                    preparerColor={selectedPreparer.color_hex}
+                    isHourBoundary={isHourBoundary}
+                    preparerColor="#03296A"
+                    run={slot && !slot.is_booked ? runInfo.get(key) ?? null : null}
                     onClick={() => onCellClick(dateStr, startTime, slot)}
                   />
                 );
@@ -158,28 +229,40 @@ interface SlotCellProps {
   slot: SlotWithMeta | null;
   isLoading: boolean;
   isToday: boolean;
+  isHourBoundary: boolean;
   preparerColor: string;    // preparer's hex color
+  run: RunInfo | null;      // run membership for open slots (visual merge)
   onClick: () => void;
 }
 
-function SlotCell({ slot, isLoading, isToday, preparerColor, onClick }: SlotCellProps) {
+function SlotCell({
+  slot,
+  isLoading,
+  isToday,
+  isHourBoundary,
+  preparerColor,
+  run,
+  onClick,
+}: SlotCellProps) {
   const state = slot === null ? 'empty' : slot.is_booked ? 'booked' : 'open';
+
+  // Horizontal dividers live on the cell now (so open runs can hide them).
+  const hBorder = `border-b border-gray-100 ${isHourBoundary ? 'border-t border-gray-200' : ''}`;
 
   // ── BOOKED: locked, shows first name, not clickable ─────────────────
   if (state === 'booked') {
     return (
       <div
         className={`
-          h-10 border-r border-gray-100 last:border-r-0
-          flex items-center gap-1 px-2
-          cursor-not-allowed bg-gray-100
-          ${isToday ? 'bg-gray-200/60' : ''}
+          h-10 border-r border-gray-100 last:border-r-0 ${hBorder}
+          flex items-center gap-1.5 px-2 cursor-not-allowed
+          ${isToday ? 'bg-gray-400/60' : 'bg-gray-300'}
         `}
         title={slot?.client_name ? `Booked: ${slot.client_name}` : 'Booked'}
       >
-        <LockIcon className="h-3 w-3 text-gray-400 flex-shrink-0" />
+        <LockIcon className="h-4 w-4 text-gray-600 flex-shrink-0" />
         {slot?.client_name && (
-          <span className="text-xs text-gray-500 truncate leading-none">
+          <span className="text-xs font-medium text-gray-700 truncate leading-none">
             {slot.client_name.split(' ')[0]}
           </span>
         )}
@@ -187,35 +270,42 @@ function SlotCell({ slot, isLoading, isToday, preparerColor, onClick }: SlotCell
     );
   }
 
-  // ── OPEN: colored, clickable to close ───────────────────────────────
+  // ── OPEN: solid preparer fill, merged into a block, clickable to close ─
   if (state === 'open') {
-    // Use the preparer's color at 25% opacity for the fill,
-    // and the full color as a bottom border stripe for accessibility
-    const bgColor = `${preparerColor}40`;   // ~25% alpha
-    const borderColor = preparerColor;
+    const pos = run?.pos ?? 'single';
+    const showLabel = pos === 'start' || pos === 'single';
+    const rounding = `${pos === 'start' || pos === 'single' ? 'rounded-t-md' : ''} ${
+      pos === 'end' || pos === 'single' ? 'rounded-b-md' : ''
+    }`;
 
     return (
       <button
         onClick={onClick}
         disabled={isLoading}
         className={`
-          h-10 border-r border-gray-100 last:border-r-0 w-full
-          transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1
-          ${isLoading ? 'opacity-50 cursor-wait' : 'hover:brightness-95 active:brightness-75 cursor-pointer'}
+          relative h-10 w-full border-r border-gray-100 last:border-r-0 ${rounding}
+          overflow-hidden transition-all duration-150 focus:outline-none
+          focus-visible:ring-2 focus-visible:ring-offset-1
+          ${isLoading ? 'opacity-60 cursor-wait' : 'hover:brightness-95 active:brightness-90 cursor-pointer'}
         `}
-        style={{
-          backgroundColor: bgColor,
-          borderBottom: `2px solid ${borderColor}`,
-        }}
-        title="Click to close this slot"
+        style={{ backgroundColor: preparerColor, color: '#FFFFFF' }}
+        title={run ? `${run.label} · Open — click to close this slot` : 'Click to close this slot'}
       >
-        {isLoading && (
-          <div className="flex items-center justify-center h-full">
-            <div
-              className="h-1.5 w-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: preparerColor }}
-            />
-          </div>
+        {isLoading ? (
+          <span className="flex items-center justify-center h-full">
+            <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-white" />
+          </span>
+        ) : (
+          showLabel && (
+            <span className="flex items-start h-full px-1.5 pt-1">
+              <span
+                className="text-[11px] font-semibold leading-tight truncate"
+                style={{ color: '#FFFFFF', textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+              >
+                {run?.label} · Open
+              </span>
+            </span>
+          )
         )}
       </button>
     );
@@ -227,7 +317,7 @@ function SlotCell({ slot, isLoading, isToday, preparerColor, onClick }: SlotCell
       onClick={onClick}
       disabled={isLoading}
       className={`
-        h-10 border-r border-gray-100 last:border-r-0 w-full group
+        h-10 border-r border-gray-100 last:border-r-0 ${hBorder} w-full group
         transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A] focus-visible:ring-offset-1
         ${isLoading ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
         ${isToday ? 'bg-[#EDF2F8]/30 hover:bg-[#EDF2F8]/70' : 'bg-white hover:bg-gray-50'}
@@ -247,7 +337,7 @@ function SlotCell({ slot, isLoading, isToday, preparerColor, onClick }: SlotCell
 // Skeleton — shown while initial data is loading
 // -----------------------------------------------------------------------
 export function AvailabilityGridSkeleton({
-  colCount = 5,
+  colCount = 7,
   rowCount = 16,
 }: {
   colCount?: number;
@@ -256,7 +346,7 @@ export function AvailabilityGridSkeleton({
   const gridTemplate = `72px repeat(${colCount}, minmax(80px, 1fr))`;
 
   return (
-    <div className="overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm animate-pulse">
+    <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm animate-pulse">
       <div className="min-w-fit">
         {/* Header skeleton */}
         <div

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { normalizePhone } from '@/lib/utils';
+import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
 import { addThirtyMinutes, formatTimeDisplay } from '@/lib/availability-utils';
 import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
+import { preparerDotColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ type FormState = {
   client_email:         string;
   appointment_type:     AppointmentType | '';
   service_subtype:      ServiceSubtype | '';
+  service_subtype_other: string;
   preparer_id:          string;
   date:                 string;
   start_time:           string;
@@ -35,12 +37,16 @@ const APPOINTMENT_TYPE_LABELS: Record<AppointmentType, string> = {
 };
 
 const SERVICE_SUBTYPE_LABELS: Record<ServiceSubtype, string> = {
-  divorce:                'Divorce',
-  immigration_consulting: 'Immigration Consulting',
-  general_consulting:     'General Consulting',
-  bankruptcy:             'Bankruptcy',
-  offer_in_compromise:    'Offer in Compromise',
-  other:                  'Other',
+  immigration_consulting:         'Immigration Consulting',
+  immigration_case:               'Immigration Case',
+  divorce_consulting:             'Divorce Consulting',
+  divorce_case:                   'Divorce Case',
+  bankruptcy_consulting:          'Bankruptcy Consulting',
+  bankruptcy_case:                'Bankruptcy Case',
+  offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+  offer_in_compromise_case:       'Offer in Compromise Case',
+  general_consulting:             'General Consulting',
+  other:                          'Other',
 };
 
 const INITIAL_FORM: FormState = {
@@ -49,6 +55,7 @@ const INITIAL_FORM: FormState = {
   client_email:         '',
   appointment_type:     '',
   service_subtype:      '',
+  service_subtype_other: '',
   preparer_id:          '',
   date:                 '',
   start_time:           '',
@@ -81,14 +88,18 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
   const isCorporate = form.appointment_type === 'corporate_tax';
   const selectedPreparer = preparers.find(p => p.id === form.preparer_id) ?? null;
 
-  // Unbooked slots, filtered by duration (corporate needs 2 consecutive unbooked)
+  // Unbooked slots, filtered by duration (corporate needs 2 consecutive unbooked).
+  // Today's already-passed slots are hidden from this convenience list (display only) —
+  // staff can still book a past time via the custom-time override below (back-dating).
   const eligibleSlots = useMemo(() => {
-    const unbooked = availableSlots.filter(s => !s.is_booked);
+    const unbooked = availableSlots.filter(
+      s => !s.is_booked && isBookableEastern(form.date, s.start_time)
+    );
     if (!isCorporate) return unbooked;
     // For 60-min: slot AND its consecutive 30-min slot must both be free
     const slotSet = new Set(unbooked.map(s => s.start_time));
     return unbooked.filter(s => slotSet.has(addThirtyMinutes(s.start_time)));
-  }, [availableSlots, isCorporate]);
+  }, [availableSlots, isCorporate, form.date]);
 
   const hasOpenSlots = eligibleSlots.length > 0;
 
@@ -160,6 +171,9 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
     if (form.appointment_type === 'professional_services' && !form.service_subtype) {
       return setError('Select a service type for Professional Services');
     }
+    if (form.service_subtype === 'other' && !form.service_subtype_other.trim()) {
+      return setError('Describe the client’s need for "Other"');
+    }
     if (!form.preparer_id) return setError('Select a preparer');
     if (!form.date) return setError('Select a date');
 
@@ -177,6 +191,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
           client_email:         form.client_email.trim() || null,
           appointment_type:     form.appointment_type,
           service_subtype:      form.service_subtype || null,
+          service_subtype_other: form.service_subtype === 'other' ? form.service_subtype_other.trim() : null,
           preparer_id:          form.preparer_id,
           date:                 form.date,
           start_time:           selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime,
@@ -331,11 +346,11 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                     type="button"
                     onClick={() => {
                       set('appointment_type', value);
-                      set('service_subtype', '');
                       setForm(f => ({
                         ...f,
                         appointment_type: value,
                         service_subtype: '',
+                        service_subtype_other: '',
                         auto_send_checklist: value !== 'professional_services',
                       }));
                     }}
@@ -372,7 +387,10 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   </label>
                   <select
                     value={form.service_subtype}
-                    onChange={e => set('service_subtype', e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value as ServiceSubtype | '';
+                      setForm(f => ({ ...f, service_subtype: val, service_subtype_other: val === 'other' ? f.service_subtype_other : '' }));
+                    }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                     required
                   >
@@ -381,6 +399,22 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                       <option key={value} value={value}>{label}</option>
                     ))}
                   </select>
+
+                  {form.service_subtype === 'other' && (
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        What does the client need? <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={form.service_subtype_other}
+                        onChange={e => set('service_subtype_other', e.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        placeholder="Briefly describe the client’s need"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -416,7 +450,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                       className="h-3 w-3 rounded-full block"
                       style={{
                         backgroundColor: selectedPreparer
-                          ? selectedPreparer.color_hex
+                          ? preparerDotColor(selectedPreparer.id)
                           : '#D1D5DB',
                       }}
                     />
@@ -438,7 +472,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   type="date"
                   value={form.date}
                   onChange={e => set('date', e.target.value)}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={easternDateString()}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                   required
                 />

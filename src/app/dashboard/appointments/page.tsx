@@ -7,7 +7,7 @@ import Header from '@/components/dashboard/Header';
 import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { formatTime } from '@/lib/utils';
+import { formatTime, easternDateString } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -25,12 +25,16 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const SUBTYPE_LABELS: Record<string, string> = {
-  divorce:                'Divorce',
-  immigration_consulting: 'Immigration',
-  general_consulting:     'Consulting',
-  bankruptcy:             'Bankruptcy',
-  offer_in_compromise:    'OIC',
-  other:                  'Other',
+  immigration_consulting:         'Immigration Consulting',
+  immigration_case:               'Immigration Case',
+  divorce_consulting:             'Divorce Consulting',
+  divorce_case:                   'Divorce Case',
+  bankruptcy_consulting:          'Bankruptcy Consulting',
+  bankruptcy_case:                'Bankruptcy Case',
+  offer_in_compromise_consulting: 'Offer in Compromise Consulting',
+  offer_in_compromise_case:       'Offer in Compromise Case',
+  general_consulting:             'General Consulting',
+  other:                          'Other',
 };
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: string }> = {
@@ -48,7 +52,7 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return easternDateString();
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -295,13 +299,7 @@ export default function AppointmentsPage() {
                     </TableCell>
                     <TableCell>
                       {appt.preparer ? (
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: appt.preparer.color_hex }}
-                          />
-                          <span className="text-gray-700">{appt.preparer.name}</span>
-                        </div>
+                        <span className="text-gray-700">{appt.preparer.name}</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}

@@ -1,8 +1,15 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { formatTime } from '@/lib/utils';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { formatTime, easternDateString } from '@/lib/utils';
 import type { CalendarAppt } from './calendarTypes';
+import {
+  readableTextColor,
+  appointmentColor,
+  CANCELLED_FILL,
+  CANCELLED_BORDER,
+  CANCELLED_TEXT,
+} from './calendarColors';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -104,7 +111,23 @@ export default function WeekView({
 }: WeekViewProps) {
   const totalMinutes = (endHour - startHour) * 60;
   const gridHeight   = totalMinutes * PX_PER_MIN;
-  const todayStr     = new Date().toISOString().slice(0, 10);
+  const todayStr     = easternDateString();
+
+  // Auto-scroll the time grid to ~8 AM on entry (initial position only — the
+  // key={viewMode} on this component remounts it when switching into Day/Week,
+  // so this fires on view entry but never fights the user's later scrolling).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const eightRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const row = eightRef.current;
+    if (!scroller || !row) return;
+    // Mirror the availability grid: measure the real 8 AM row and scroll it near
+    // the top of the viewport. Robust to layout timing — unlike a computed pixel
+    // offset, which lands at the top when the container isn't yet scrollable at
+    // effect time.
+    scroller.scrollTop += row.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 8;
+  }, [startHour]);
 
   // Group visible appointments by date
   const apptsByDate = useMemo(() => {
@@ -120,12 +143,15 @@ export default function WeekView({
     return map;
   }, [appointments, days, hiddenPreparerIds]);
 
-  // Hour labels for the time axis
-  const hourLines = Array.from({ length: (endHour - startHour) + 1 }, (_, i) => {
-    const h    = startHour + i;
+  // Time-axis labels — one per 30-min row (on the hour + on the half-hour)
+  const numSlots = (endHour - startHour) * 2;
+  const timeLabels = Array.from({ length: numSlots + 1 }, (_, i) => {
+    const totalMin = startHour * 60 + i * 30;
+    const h    = Math.floor(totalMin / 60);
+    const m    = totalMin % 60;
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hr   = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    return { label: `${hr}:00 ${ampm}`, top: i * SLOT_HEIGHT * 2 };
+    return { label: `${hr}:${m === 0 ? '00' : '30'} ${ampm}`, top: i * SLOT_HEIGHT, onHour: m === 0 };
   });
 
   return (
@@ -169,22 +195,26 @@ export default function WeekView({
       </div>
 
       {/* ── Scrollable time grid ─────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="flex" style={{ height: gridHeight }}>
 
           {/* Time axis */}
           <div className="w-16 flex-shrink-0 relative border-r border-gray-200 bg-white">
-            {hourLines.map(({ label, top }, i) => (
-              <div
-                key={i}
-                className="absolute right-0 left-0 flex justify-end pr-2"
-                style={{ top: top - 9 }}
-              >
-                <span className="text-[11px] text-gray-400 font-medium leading-none">
-                  {label}
-                </span>
-              </div>
-            ))}
+            {timeLabels.map(({ label, top, onHour }, i) => {
+              const isEight = startHour * 60 + i * 30 === 8 * 60;
+              return (
+                <div
+                  key={i}
+                  ref={isEight ? eightRef : undefined}
+                  className="absolute right-0 left-0 flex justify-end pr-2"
+                  style={{ top: top - 9 }}
+                >
+                  <span className={`text-[11px] leading-none ${onHour ? 'text-gray-500 font-medium' : 'text-gray-400'}`}>
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Day columns */}
@@ -222,53 +252,71 @@ export default function WeekView({
 
                 {/* Appointment blocks */}
                 {positioned.map(({ appt, top, height, leftFrac, widthFrac }) => {
-                  const color      = appt.preparer?.color_hex ?? '#94A3B8';
-                  const isPending  = appt.status === 'pending';
+                  const baseColor   = appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id);
+                  const isPending   = appt.status === 'pending';
                   const isCancelled = appt.status === 'cancelled';
-                  const isSelected = appt.id === selectedId;
-                  const typeLabel  = TYPE_LABELS[appt.appointment_type] ?? '';
+                  const isSelected  = appt.id === selectedId;
+                  const typeLabel   = TYPE_LABELS[appt.appointment_type] ?? '';
+
+                  // Two dimensions: appointment type/subtype (Oraise/Emely keep a personal
+                  // color) = fill, status = border/badge. Cancelled overrides with muted red.
+                  const fill      = isCancelled ? CANCELLED_FILL : baseColor;
+                  const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(baseColor);
+
+                  const blockStyle: React.CSSProperties = {
+                    top:    `${top + 1}px`,
+                    height: `${height - 2}px`,
+                    left:   `calc(${leftFrac * 100}% + 3px)`,
+                    width:  `calc(${widthFrac * 100}% - 6px)`,
+                    backgroundColor: fill,
+                  };
+                  if (isCancelled) {
+                    blockStyle.border = `2px solid ${CANCELLED_BORDER}`;
+                  } else if (isPending) {
+                    blockStyle.border = `2px dashed ${textColor}`;
+                  } else {
+                    blockStyle.border = '1px solid rgba(0,0,0,0.12)';
+                  }
 
                   return (
                     <button
                       key={appt.id}
                       onClick={() => onSelect(appt)}
-                      title={`${appt.client_name} · ${appt.appointment_type.replace(/_/g, ' ')} · ${formatTime(appt.start_time)}`}
-                      className={`absolute text-left rounded-md overflow-hidden transition-all duration-150 focus:outline-none group ${
-                        isCancelled ? 'opacity-40' : 'hover:brightness-[0.97] hover:shadow-md'
-                      } ${
+                      title={`${appt.client_name} · ${appt.appointment_type.replace(/_/g, ' ')} · ${formatTime(appt.start_time)}${isCancelled ? ' · Cancelled' : isPending ? ' · Pending' : ''}`}
+                      className={`absolute text-left rounded-md overflow-hidden transition-all duration-150 focus:outline-none group hover:brightness-[0.97] hover:shadow-md ${
                         isSelected ? 'ring-2 ring-[#03296A] ring-offset-1 z-20' : 'z-10 hover:z-20'
                       }`}
-                      style={{
-                        top:    `${top + 1}px`,
-                        height: `${height - 2}px`,
-                        left:   `calc(${leftFrac * 100}% + 3px)`,
-                        width:  `calc(${widthFrac * 100}% - 6px)`,
-                        backgroundColor: `${color}1A`,
-                        ...(isPending
-                          ? { border: `2px dashed ${color}` }
-                          : { borderLeft: `4px solid ${color}` }
-                        ),
-                      }}
+                      style={blockStyle}
                     >
-                      {/* Pending pulse indicator */}
+                      {/* Status badge (status = border/badge dimension) */}
                       {isPending && (
                         <span
-                          className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full animate-pulse"
-                          style={{ backgroundColor: color }}
-                        />
+                          className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide leading-none"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.92)', color: '#111827' }}
+                        >
+                          Pending
+                        </span>
+                      )}
+                      {isCancelled && (
+                        <span
+                          className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide leading-none text-white"
+                          style={{ backgroundColor: CANCELLED_BORDER }}
+                        >
+                          Cancelled
+                        </span>
                       )}
 
                       <div className="px-2 py-1 h-full overflow-hidden">
                         <p
-                          className="text-xs font-bold leading-tight truncate"
-                          style={{ color }}
+                          className={`text-xs font-bold leading-tight truncate ${isCancelled ? 'line-through' : ''}`}
+                          style={{ color: textColor }}
                         >
                           {appt.client_name}
                         </p>
                         {height > 38 && (
                           <p
                             className="text-[10px] leading-tight truncate mt-0.5"
-                            style={{ color, opacity: 0.7 }}
+                            style={{ color: textColor, opacity: 0.85 }}
                           >
                             {formatTime(appt.start_time)} · {typeLabel}
                           </p>

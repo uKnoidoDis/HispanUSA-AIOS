@@ -13,5 +13,16 @@ export function createServerClient() {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      // Force every server-side query to read live data. supabase-js calls
+      // PostgREST via fetch(), and Next.js's App Router Data Cache will cache
+      // that fetch (keyed on the Supabase URL, not our route) and replay stale
+      // rows — the pending queue kept returning deleted/edited appointments
+      // even with `force-dynamic` and a no-store response header, because those
+      // govern the route/HTTP layer, not the inner fetch. cache: 'no-store'
+      // opts every read out of the Data Cache. This client is service-role and
+      // only ever reads/writes live admin data, so caching is never desirable.
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   });
 }

@@ -2,6 +2,14 @@
 
 import React, { useMemo } from 'react';
 import type { CalendarAppt } from './calendarTypes';
+import { easternDateString } from '@/lib/utils';
+import {
+  readableTextColor,
+  appointmentColor,
+  CANCELLED_FILL,
+  CANCELLED_BORDER,
+  CANCELLED_TEXT,
+} from './calendarColors';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,7 +57,7 @@ export default function MonthView({
   const month = currentDate.getMonth();
 
   const gridDays = useMemo(() => getMonthGridDays(year, month), [year, month]);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = easternDateString();
 
   // Index appointments by date
   const apptsByDate = useMemo(() => {
@@ -111,22 +119,33 @@ export default function MonthView({
                 {/* Appointment chips */}
                 <div className="space-y-0.5">
                   {dayAppts.slice(0, maxVisible).map(appt => {
-                    const color     = appt.preparer?.color_hex ?? '#94A3B8';
-                    const isPending = appt.status === 'pending';
+                    const baseColor   = appointmentColor(appt.appointment_type, appt.service_subtype, appt.preparer_id);
+                    const isPending   = appt.status === 'pending';
+                    const isCancelled = appt.status === 'cancelled';
+
+                    // Type/subtype (Oraise/Emely keep a personal color) = fill, status = border.
+                    // Cancelled overrides with muted red.
+                    const fill      = isCancelled ? CANCELLED_FILL : baseColor;
+                    const textColor = isCancelled ? CANCELLED_TEXT : readableTextColor(baseColor);
+
+                    const chipStyle: React.CSSProperties = { backgroundColor: fill };
+                    if (isCancelled) {
+                      chipStyle.border = `1px solid ${CANCELLED_BORDER}`;
+                    } else if (isPending) {
+                      chipStyle.border = `1px dashed ${textColor}`;
+                    }
 
                     return (
                       <div
                         key={appt.id}
-                        className={`flex items-center gap-1 px-1 py-0.5 rounded text-[11px] leading-tight truncate ${
-                          isPending ? 'opacity-70' : ''
-                        }`}
-                        style={{ backgroundColor: `${color}1A` }}
+                        className="flex items-center gap-1 px-1 py-0.5 rounded text-[11px] leading-tight truncate"
+                        style={chipStyle}
+                        title={`${appt.client_name}${isCancelled ? ' · Cancelled' : isPending ? ' · Pending' : ''}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPending ? 'animate-pulse' : ''}`}
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="truncate font-medium" style={{ color }}>
+                          className={`truncate font-medium ${isCancelled ? 'line-through' : ''}`}
+                          style={{ color: textColor }}
+                        >
                           {appt.client_name}
                         </span>
                       </div>
