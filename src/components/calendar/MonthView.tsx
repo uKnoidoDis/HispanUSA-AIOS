@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import type { CalendarAppt } from './calendarTypes';
+import { easternDateString } from '@/lib/utils';
 import {
   readableTextColor,
   appointmentColor,
@@ -56,7 +57,7 @@ export default function MonthView({
   const month = currentDate.getMonth();
 
   const gridDays = useMemo(() => getMonthGridDays(year, month), [year, month]);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = easternDateString();
 
   // Index appointments by date
   const apptsByDate = useMemo(() => {

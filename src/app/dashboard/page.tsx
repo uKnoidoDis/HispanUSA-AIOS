@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Clock, Calendar, ChevronRight } from 'lucide-react';
 import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
-import { formatTime } from '@/lib/utils';
+import { formatTime, easternDateString } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
 import { appointmentColor } from '@/components/calendar/calendarColors';
 
@@ -34,7 +34,7 @@ const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: strin
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return easternDateString();
 }
 
 function getGreeting(): string {

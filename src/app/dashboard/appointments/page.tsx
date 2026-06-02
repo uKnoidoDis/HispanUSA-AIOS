@@ -7,7 +7,7 @@ import Header from '@/components/dashboard/Header';
 import BookingModal from '@/components/appointments/BookingModal';
 import ToastContainer, { type ToastItem } from '@/components/ui/Toast';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { formatTime } from '@/lib/utils';
+import { formatTime, easternDateString } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return easternDateString();
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

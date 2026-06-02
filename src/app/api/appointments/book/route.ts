@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { normalizePhone } from '@/lib/utils';
+import { normalizePhone, easternDateString } from '@/lib/utils';
 import { addThirtyMinutes } from '@/lib/availability-utils';
 import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   const phone = normalizePhone(input.client_phone);
 
   // ── Rate limit: max 5 booking requests per phone per calendar day ──────────
-  const today = new Date().toISOString().slice(0, 10);
+  const today = easternDateString();
   const { count } = await supabase
     .from('appointments')
     .select('id', { count: 'exact', head: true })

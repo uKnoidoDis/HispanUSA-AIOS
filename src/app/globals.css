@@ -3,7 +3,10 @@
 @tailwind utilities;
 
 html {
-  scrollbar-gutter: stable both-edges;
+  /* `stable` reserves only the end (right) gutter to prevent scrollbar layout
+     shift. `both-edges` previously also reserved a LEFT gutter, which exposed the
+     body background as a thin near-white strip down the left of the navy sidebar. */
+  scrollbar-gutter: stable;
 }
 
 :root {

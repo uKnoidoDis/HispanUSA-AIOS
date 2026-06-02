@@ -205,7 +205,6 @@ export default function CalendarView() {
     return formatWeekRange(days[0], days[days.length - 1]);
   }, [viewMode, currentDate, days]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
   const isThisWeek = toDateStr(weekStart) === toDateStr(getWeekStart(new Date()));
 
   return (

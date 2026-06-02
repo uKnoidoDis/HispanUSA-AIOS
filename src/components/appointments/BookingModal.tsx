@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { normalizePhone } from '@/lib/utils';
+import { normalizePhone, easternDateString } from '@/lib/utils';
 import { addThirtyMinutes, formatTimeDisplay } from '@/lib/availability-utils';
 import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
 import { preparerDotColor } from '@/components/calendar/calendarColors';
@@ -468,7 +468,7 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   type="date"
                   value={form.date}
                   onChange={e => set('date', e.target.value)}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={easternDateString()}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                   required
                 />

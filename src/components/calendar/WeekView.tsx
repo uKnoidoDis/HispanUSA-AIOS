@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useEffect } from 'react';
-import { formatTime } from '@/lib/utils';
+import { formatTime, easternDateString } from '@/lib/utils';
 import type { CalendarAppt } from './calendarTypes';
 import {
   readableTextColor,
@@ -111,7 +111,7 @@ export default function WeekView({
 }: WeekViewProps) {
   const totalMinutes = (endHour - startHour) * 60;
   const gridHeight   = totalMinutes * PX_PER_MIN;
-  const todayStr     = new Date().toISOString().slice(0, 10);
+  const todayStr     = easternDateString();
 
   // Auto-scroll the time grid to ~8 AM on entry (initial position only — the
   // key={viewMode} on this component remounts it when switching into Day/Week,

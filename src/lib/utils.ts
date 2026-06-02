@@ -44,8 +44,17 @@ export function daysUntil(dateStr: string): number {
   return differenceInCalendarDays(target, today);
 }
 
+// HispanUSA operates in America/New_York. Returns the Eastern calendar date
+// (YYYY-MM-DD) for the given instant — identical on the client (any browser
+// timezone) and the server (Vercel runs UTC), so "today" never rolls a day
+// early in the Eastern evening (the UTC-vs-local bug). Use this for every
+// now-based "today" computation that drives highlights, booking, or availability.
+export function easternDateString(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(d);
+}
+
 export function todayString(): string {
-  return format(new Date(), 'yyyy-MM-dd');
+  return easternDateString();
 }
 
 export function addDaysToDate(dateStr: string, days: number): string {
