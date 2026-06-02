@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { normalizePhone, easternDateString } from '@/lib/utils';
+import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
 import { addThirtyMinutes } from '@/lib/availability-utils';
 import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
@@ -107,6 +107,16 @@ export async function POST(request: NextRequest) {
   // ── Validate requested date is not in the past ─────────────────────────────
   if (input.date < today) {
     return NextResponse.json({ error: 'Cannot book appointments in the past' }, { status: 400 });
+  }
+
+  // ── Reject same-day slots whose start time has already passed ───────────────
+  // Server backstop so a direct POST can't bypass the read-path expiry filter.
+  // For corporate, the first slot's start passing is sufficient to reject.
+  if (!isBookableEastern(input.date, startTime)) {
+    return NextResponse.json(
+      { error: 'Cannot book a time that has already passed. Please choose a later time.' },
+      { status: 400 },
+    );
   }
 
   // ── Find an available preparer (first one with all required slots free) ─────

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { normalizePhone, easternDateString } from '@/lib/utils';
+import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
 import { addThirtyMinutes, formatTimeDisplay } from '@/lib/availability-utils';
 import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
 import { preparerDotColor } from '@/components/calendar/calendarColors';
@@ -88,14 +88,18 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
   const isCorporate = form.appointment_type === 'corporate_tax';
   const selectedPreparer = preparers.find(p => p.id === form.preparer_id) ?? null;
 
-  // Unbooked slots, filtered by duration (corporate needs 2 consecutive unbooked)
+  // Unbooked slots, filtered by duration (corporate needs 2 consecutive unbooked).
+  // Today's already-passed slots are hidden from this convenience list (display only) —
+  // staff can still book a past time via the custom-time override below (back-dating).
   const eligibleSlots = useMemo(() => {
-    const unbooked = availableSlots.filter(s => !s.is_booked);
+    const unbooked = availableSlots.filter(
+      s => !s.is_booked && isBookableEastern(form.date, s.start_time)
+    );
     if (!isCorporate) return unbooked;
     // For 60-min: slot AND its consecutive 30-min slot must both be free
     const slotSet = new Set(unbooked.map(s => s.start_time));
     return unbooked.filter(s => slotSet.has(addThirtyMinutes(s.start_time)));
-  }, [availableSlots, isCorporate]);
+  }, [availableSlots, isCorporate, form.date]);
 
   const hasOpenSlots = eligibleSlots.length > 0;
 

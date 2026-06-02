@@ -57,6 +57,45 @@ export function todayString(): string {
   return easternDateString();
 }
 
+// Returns the Eastern wall-clock time (HH:MM:SS, 24-hour) for the given instant —
+// the time-of-day companion to easternDateString(). Identical on client and server
+// because the timeZone is pinned to America/New_York regardless of host TZ.
+export function easternTimeString(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).format(d);
+}
+
+// A slot must stop being bookable this many minutes BEFORE its start time. A client
+// can't realistically book-and-arrive in under this window, and it absorbs the gap
+// between the picker rendering and the booking POST landing. Single tunable constant.
+export const BOOKING_LEAD_MINUTES = 15;
+
+// The single source of truth for "is this (date, start_time) slot still bookable?"
+// Derived, read-time only — never persisted (is_booked means "claimed", not "expired").
+// Bookable iff the slot starts at least BOOKING_LEAD_MINUTES from now in Eastern time:
+//   - future date  -> always bookable (no time check on later days)
+//   - today        -> start_time must be >= (now + lead) in Eastern
+//   - past date    -> never bookable
+// start_time/date are zero-padded (YYYY-MM-DD / HH:MM:SS), so string compare is exact
+// and matches the DATE/TIME column formats.
+export function isBookableEastern(
+  date: string,
+  startTime: string,
+  leadMinutes: number = BOOKING_LEAD_MINUTES,
+): boolean {
+  const normalized = startTime.length === 5 ? `${startTime}:00` : startTime;
+  const cutoff = new Date(Date.now() + leadMinutes * 60_000);
+  const cutoffDate = easternDateString(cutoff);
+  if (date > cutoffDate) return true;
+  if (date < cutoffDate) return false;
+  return normalized >= easternTimeString(cutoff);
+}
+
 export function addDaysToDate(dateStr: string, days: number): string {
   const date = parseISO(dateStr);
   date.setDate(date.getDate() + days);

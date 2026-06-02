@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { addThirtyMinutes } from '@/lib/availability-utils';
+import { easternDateString, isBookableEastern } from '@/lib/utils';
 
 // GET /api/appointments/available-times?date=2026-03-15&type=personal_tax
 // Returns array of available start time strings ("09:00", "09:30", …) for the given date.
@@ -15,6 +16,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'date is required (YYYY-MM-DD)' }, { status: 400 });
   }
 
+  // Past day -> nothing is bookable. (This route previously had no date floor at all.)
+  if (date < easternDateString()) {
+    return NextResponse.json([]);
+  }
+
   const supabase = createServerClient();
 
   const { data: slots, error } = await supabase
@@ -26,14 +32,18 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const times = (slots ?? []).map(s => (s.start_time as string).slice(0, 5)); // 'HH:MM'
+  // Drop today's already-passed times (Eastern, + lead buffer). Future days unaffected.
+  const liveSlots = (slots ?? []).filter(s => isBookableEastern(date, s.start_time as string));
+
+  const times = liveSlots.map(s => (s.start_time as string).slice(0, 5)); // 'HH:MM'
 
   if (type !== 'corporate_tax') {
     return NextResponse.json(times);
   }
 
-  // For corporate (60 min): only slots where the next 30-min slot is also free
-  const timeSet = new Set((slots ?? []).map(s => s.start_time as string));
+  // For corporate (60 min): only slots where the next 30-min slot is also free.
+  // Built from liveSlots so a pair whose first slot has passed the buffer is excluded.
+  const timeSet = new Set(liveSlots.map(s => s.start_time as string));
   const consecutiveTimes = times.filter(t => {
     const tFull = `${t}:00`;
     return timeSet.has(addThirtyMinutes(tFull));

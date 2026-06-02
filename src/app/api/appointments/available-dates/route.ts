@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { addThirtyMinutes } from '@/lib/availability-utils';
-import { easternDateString } from '@/lib/utils';
+import { easternDateString, isBookableEastern } from '@/lib/utils';
 
 // GET /api/appointments/available-dates?type=personal_tax&months=2
 // Returns array of YYYY-MM-DD strings that have available slots for the given type.
@@ -38,9 +38,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
 
-  // Group slots by date
+  // Group slots by date, dropping any slot whose start time has already passed
+  // (Eastern, + lead buffer). A day whose every remaining slot has expired produces
+  // no entry here and therefore drops off the date picker entirely.
   const byDate = new Map<string, string[]>();
   for (const slot of slots) {
+    if (!isBookableEastern(slot.date as string, slot.start_time as string)) continue;
     const existing = byDate.get(slot.date) ?? [];
     existing.push(slot.start_time as string);
     byDate.set(slot.date, existing);
