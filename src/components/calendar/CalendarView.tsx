@@ -276,7 +276,7 @@ export default function CalendarView() {
           {/* Group A: Appointment Types */}
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Appointment Types</span>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 max-w-[640px]">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-2">
               {APPOINTMENT_TYPE_LEGEND.map(e => (
                 <span key={e.en} className="inline-flex items-center gap-1.5">
                   <span
@@ -313,15 +313,15 @@ export default function CalendarView() {
             <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</span>
             <div className="flex flex-col gap-1.5">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
-                <span className="w-3 h-3 rounded-sm border border-black/15 flex-shrink-0" style={{ backgroundColor: '#64748B' }} />
+                <span className="w-4 h-4 rounded-sm border border-black/15 flex-shrink-0" style={{ backgroundColor: '#64748B' }} />
                 Confirmed
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
-                <span className="w-3 h-3 rounded-sm border-2 border-dashed flex-shrink-0" style={{ borderColor: '#64748B' }} />
+                <span className="w-4 h-4 rounded-sm border-2 border-dashed flex-shrink-0" style={{ borderColor: '#64748B' }} />
                 Pending
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
-                <span className="w-3 h-3 rounded-sm border-2 flex-shrink-0" style={{ backgroundColor: CANCELLED_FILL, borderColor: CANCELLED_BORDER }} />
+                <span className="w-4 h-4 rounded-sm border-2 flex-shrink-0" style={{ backgroundColor: CANCELLED_FILL, borderColor: CANCELLED_BORDER }} />
                 Cancelled
               </span>
             </div>
