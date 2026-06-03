@@ -51,7 +51,8 @@ type MessageType =
   | 'reminder_7d'
   | 'reminder_3d'
   | 'reminder_1d'
-  | 'checklist_manual';
+  | 'checklist_manual'
+  | 'cancellation';
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -399,6 +400,62 @@ export async function sendRejectionMessage(
   }
 
   return { sms: smsResult, email: emailResult };
+}
+
+/**
+ * sendCancellationMessage
+ * Notifies the client that a previously-booked appointment has been CANCELLED.
+ * Distinct from sendRejectionMessage (which declines a never-confirmed request):
+ * this is a real appointment going away, so the client must always be told.
+ *
+ * EMAIL ONLY for now: SMS is intentionally not sent while the Twilio A2P 10DLC
+ * campaign is under carrier review (it would only log a failure). The SMS body
+ * is kept below, commented, so the channel switches on without a rewrite once
+ * A2P is approved — same dormant pattern as sendPendingMessage.
+ */
+export async function sendCancellationMessage(
+  appt: MessagingAppt,
+  supabase: SupabaseClient
+): Promise<SendResult> {
+  const { language: lang } = appt;
+  const dateDisplay = formatDate(appt.date);
+  const timeDisplay = formatTime(appt.start_time);
+
+  // ── Email ───────────────────────────────────────────────────────────────────
+  const subject = lang === 'es'
+    ? 'Cita Cancelada — HispanUSA'
+    : 'Appointment Cancelled — HispanUSA';
+
+  const bodyHtml = lang === 'es'
+    ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
+       <p style="margin:0 0 4px;color:#374151;">Su cita en HispanUSA ha sido <strong>cancelada</strong>:</p>
+       ${apptInfoBlock(dateDisplay, timeDisplay)}
+       <p style="margin:0 0 12px;color:#374151;">Si desea reservar una nueva cita, llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
+    : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
+       <p style="margin:0 0 4px;color:#374151;">Your HispanUSA appointment has been <strong>cancelled</strong>:</p>
+       ${apptInfoBlock(dateDisplay, timeDisplay)}
+       <p style="margin:0 0 12px;color:#374151;">To book a new appointment, please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
+
+  const emailHtml = wrapEmail(bodyHtml);
+
+  // ── SMS (disabled until A2P 10DLC approves; kept for easy re-enable) ─────────
+  // const smsBody = lang === 'es'
+  //   ? `HispanUSA: su cita del ${dateDisplay} a las ${timeDisplay} ha sido cancelada. Para reservar una nueva cita llame al ${OFFICE_PHONE}.`
+  //   : `HispanUSA: your appointment on ${dateDisplay} at ${timeDisplay} has been cancelled. To book a new one, call ${OFFICE_PHONE}.`;
+  // const smsResult = await trySendSMS(appt.client_phone, smsBody);
+  // await logMessage(supabase, appt.id, 'sms', 'cancellation', smsResult.sent ? 'sent' : 'failed', smsResult.error ?? undefined);
+
+  // ── Send (email only) ─────────────────────────────────────────────────────────
+  const emailResult = { sent: false, error: null as string | null };
+  if (appt.client_email) {
+    const r = await trySendEmail(appt.client_email, subject, emailHtml);
+    Object.assign(emailResult, r);
+    await logMessage(supabase, appt.id, 'email', 'cancellation', r.sent ? 'sent' : 'failed', r.error ?? undefined);
+  }
+
+  return { sms: { sent: false, error: null }, email: emailResult };
 }
 
 /**
