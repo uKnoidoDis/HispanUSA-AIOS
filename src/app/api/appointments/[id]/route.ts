@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { addThirtyMinutes } from '@/lib/availability-utils';
+import { sendCancellationMessage, type MessagingAppt } from '@/lib/messaging';
 
 const updateSchema = z.object({
   status:         z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
@@ -120,6 +121,9 @@ export async function PATCH(
   }
 
   // ── Cancel: if status is being set to cancelled, free the slots ────────
+  // didCancel is true only on a real transition (non-cancelled → cancelled), so a
+  // double-cancel never re-frees slots or re-notifies the client.
+  let didCancel = false;
   if (updateData.status === 'cancelled') {
     const { data: current } = await supabase
       .from('appointments')
@@ -128,6 +132,7 @@ export async function PATCH(
       .single();
 
     if (current && (current.status as string) !== 'cancelled') {
+      didCancel = true;
       const isCorporate = (current.appointment_type as string) === 'corporate_tax';
       const slotStartTimes = isCorporate
         ? [current.start_time as string, addThirtyMinutes(current.start_time as string)]
@@ -153,6 +158,31 @@ export async function PATCH(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // ── Notify client of cancellation (non-blocking) ───────────────────────
+  // The cancel + slot-free are already committed above; a failed send must NOT
+  // roll that back. sendCancellationMessage logs its own outcome to `messages`
+  // (status 'sent'/'failed'), so delivery is auditable there. Response stays 200.
+  if (didCancel && data) {
+    const messagingAppt: MessagingAppt = {
+      id:                  data.id as string,
+      client_name:         data.client_name as string,
+      client_phone:        data.client_phone as string,
+      client_email:        data.client_email as string | null,
+      appointment_type:    data.appointment_type as MessagingAppt['appointment_type'],
+      service_subtype:     data.service_subtype as string | null,
+      date:                data.date as string,
+      start_time:          data.start_time as string,
+      language:            data.language as 'en' | 'es',
+      auto_send_checklist: data.auto_send_checklist as boolean,
+      checklist_sent:      data.checklist_sent as boolean,
+    };
+    try {
+      await sendCancellationMessage(messagingAppt, supabase);
+    } catch (e) {
+      console.error('[PATCH /api/appointments/[id]] cancellation message failed (non-blocking):', e);
+    }
+  }
 
   return NextResponse.json(data);
 }
