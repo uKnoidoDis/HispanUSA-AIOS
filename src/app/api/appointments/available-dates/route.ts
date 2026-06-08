@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { addThirtyMinutes } from '@/lib/availability-utils';
+import { slotsForType, consecutiveFreeFrom } from '@/lib/availability-utils';
 import { easternDateString, isBookableEastern } from '@/lib/utils';
 
 // GET /api/appointments/available-dates?type=personal_tax&months=2
@@ -49,17 +49,17 @@ export async function GET(request: NextRequest) {
     byDate.set(slot.date, existing);
   }
 
-  const isCorporate = type === 'corporate_tax';
+  const count = slotsForType(type);
   const availableDates: string[] = [];
 
   for (const [date, times] of Array.from(byDate.entries())) {
-    if (!isCorporate) {
+    if (count === 1) {
       // Any date with at least one slot works
       availableDates.push(date);
     } else {
-      // Need two consecutive 30-min slots
+      // Need `count` consecutive 30-min slots (corporate_tax = 2, personal_corporate_tax = 3)
       const timeSet = new Set(times);
-      const hasConsecutive = times.some(slotTime => timeSet.has(addThirtyMinutes(slotTime)));
+      const hasConsecutive = times.some(slotTime => consecutiveFreeFrom(timeSet, slotTime, count));
       if (hasConsecutive) availableDates.push(date);
     }
   }

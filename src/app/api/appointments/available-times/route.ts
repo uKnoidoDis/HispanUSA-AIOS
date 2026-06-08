@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { addThirtyMinutes } from '@/lib/availability-utils';
+import { slotsForType, consecutiveFreeFrom } from '@/lib/availability-utils';
 import { easternDateString, isBookableEastern } from '@/lib/utils';
 
 // GET /api/appointments/available-times?date=2026-03-15&type=personal_tax
@@ -37,17 +37,16 @@ export async function GET(request: NextRequest) {
 
   const times = liveSlots.map(s => (s.start_time as string).slice(0, 5)); // 'HH:MM'
 
-  if (type !== 'corporate_tax') {
+  const count = slotsForType(type);
+  if (count === 1) {
     return NextResponse.json(times);
   }
 
-  // For corporate (60 min): only slots where the next 30-min slot is also free.
-  // Built from liveSlots so a pair whose first slot has passed the buffer is excluded.
+  // Multi-slot types need `count` consecutive free 30-min slots
+  // (corporate_tax = 2, personal_corporate_tax = 3). Built from liveSlots so a run
+  // whose earlier slot already passed the Eastern buffer is excluded.
   const timeSet = new Set(liveSlots.map(s => s.start_time as string));
-  const consecutiveTimes = times.filter(t => {
-    const tFull = `${t}:00`;
-    return timeSet.has(addThirtyMinutes(tFull));
-  });
+  const consecutiveTimes = times.filter(t => consecutiveFreeFrom(timeSet, t, count));
 
   return NextResponse.json(consecutiveTimes);
 }

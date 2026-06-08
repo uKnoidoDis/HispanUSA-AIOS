@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
-import { addThirtyMinutes } from '@/lib/availability-utils';
+import { addThirtyMinutes, slotStartTimesFor, endTimeFor } from '@/lib/availability-utils';
 import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ const bookSchema = z.object({
   client_name:      z.string().min(2, 'Full name required'),
   client_phone:     z.string().min(10, 'Valid US phone required'),
   client_email:     z.string().email('Invalid email').optional().nullable(),
-  appointment_type: z.enum(['personal_tax', 'corporate_tax', 'professional_services']),
+  appointment_type: z.enum(['personal_tax', 'corporate_tax', 'personal_corporate_tax', 'professional_services']),
   service_subtype:  z.enum([
     'immigration_consulting', 'immigration_case',
     'divorce_consulting', 'divorce_case',
@@ -96,13 +96,10 @@ export async function POST(request: NextRequest) {
     ? `${input.start_time}:00`
     : input.start_time;
 
-  const isCorporate = input.appointment_type === 'corporate_tax';
-  const endTime = isCorporate
-    ? addThirtyMinutes(addThirtyMinutes(startTime))
-    : addThirtyMinutes(startTime);
-  const slotStartTimes = isCorporate
-    ? [startTime, addThirtyMinutes(startTime)]
-    : [startTime];
+  // Slot count + end_time from slotsForType() (single source of truth):
+  // personal_corporate_tax = 3 slots / 90 min, corporate_tax = 2 / 60, else 1 / 30.
+  const endTime = endTimeFor(startTime, input.appointment_type);
+  const slotStartTimes = slotStartTimesFor(startTime, input.appointment_type);
 
   // ── Validate requested date is not in the past ─────────────────────────────
   if (input.date < today) {
@@ -134,22 +131,23 @@ export async function POST(request: NextRequest) {
   for (const slot of (candidates ?? [])) {
     const preparerId = slot.preparer_id as string;
 
-    if (!isCorporate) {
+    if (slotStartTimes.length === 1) {
       assignedPreparerId = preparerId;
       break;
     }
 
-    // For corporate, also verify the second consecutive slot is free
-    const { data: secondSlot } = await supabase
+    // Multi-slot types (corporate = 2, personal+corporate = 3): verify EVERY
+    // required consecutive slot exists and is free for this preparer — not just
+    // the first or second. Count of free matching slots must equal the full set.
+    const { data: freeSlots } = await supabase
       .from('availability_slots')
-      .select('id')
+      .select('start_time')
       .eq('preparer_id', preparerId)
       .eq('date', input.date)
-      .eq('start_time', addThirtyMinutes(startTime))
-      .eq('is_booked', false)
-      .maybeSingle();
+      .in('start_time', slotStartTimes)
+      .eq('is_booked', false);
 
-    if (secondSlot) {
+    if ((freeSlots?.length ?? 0) === slotStartTimes.length) {
       assignedPreparerId = preparerId;
       break;
     }

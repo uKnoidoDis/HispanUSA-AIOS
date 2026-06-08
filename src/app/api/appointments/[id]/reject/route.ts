@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { addThirtyMinutes } from '@/lib/availability-utils';
+import { slotStartTimesFor } from '@/lib/availability-utils';
 import { sendRejectionMessage, type MessagingAppt } from '@/lib/messaging';
 
 // POST /api/appointments/[id]/reject
@@ -27,12 +27,8 @@ export async function POST(
     return NextResponse.json({ error: 'Appointment is not pending' }, { status: 409 });
   }
 
-  // Free the held slots
-  const isCorporate = appt.appointment_type === 'corporate_tax';
-  const startTime   = appt.start_time as string;
-  const slotStarts  = isCorporate
-    ? [startTime, addThirtyMinutes(startTime)]
-    : [startTime];
+  // Free the held slots — count from slotsForType() (3 for personal+corporate).
+  const slotStarts = slotStartTimesFor(appt.start_time as string, appt.appointment_type as string);
 
   for (const slotStart of slotStarts) {
     await supabase

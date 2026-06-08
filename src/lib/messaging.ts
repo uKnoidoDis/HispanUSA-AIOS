@@ -29,7 +29,7 @@ export interface MessagingAppt {
   client_name: string;
   client_phone: string;
   client_email: string | null;
-  appointment_type: 'personal_tax' | 'corporate_tax' | 'professional_services';
+  appointment_type: 'personal_tax' | 'corporate_tax' | 'personal_corporate_tax' | 'professional_services';
   service_subtype: string | null;
   date: string;       // YYYY-MM-DD
   start_time: string; // HH:MM:SS
@@ -59,6 +59,9 @@ type MessageType =
 function getChecklistTypes(appointmentType: string): ChecklistType[] | null {
   if (appointmentType === 'personal_tax') return ['checklist_1'];
   if (appointmentType === 'corporate_tax') return ['checklist_4'];
+  // Personal + Corporate = both personal and corporate document checklists.
+  // TODO(Mariana): confirm the exact combined doc list; "both" is the safe default.
+  if (appointmentType === 'personal_corporate_tax') return ['checklist_1', 'checklist_4'];
   return null; // professional_services → generic message
 }
 
