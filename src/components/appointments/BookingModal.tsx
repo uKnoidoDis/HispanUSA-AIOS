@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
-import { addThirtyMinutes, formatTimeDisplay } from '@/lib/availability-utils';
+import { formatTimeDisplay, slotsForType, consecutiveFreeFrom, endTimeFor } from '@/lib/availability-utils';
 import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
 import { preparerDotColor } from '@/components/calendar/calendarColors';
 
@@ -31,9 +31,10 @@ type FormState = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const APPOINTMENT_TYPE_LABELS: Record<AppointmentType, string> = {
-  personal_tax:          'Taxes — Personal',
-  corporate_tax:         'Taxes — Corporate',
-  professional_services: 'Professional Services',
+  personal_tax:           'Taxes — Personal',
+  corporate_tax:          'Taxes — Corporate',
+  personal_corporate_tax: 'Taxes — Personal and Corporate',
+  professional_services:  'Professional Services',
 };
 
 const SERVICE_SUBTYPE_LABELS: Record<ServiceSubtype, string> = {
@@ -85,21 +86,23 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
   const [phoneError, setPhoneError]       = useState('');
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const isCorporate = form.appointment_type === 'corporate_tax';
+  // How many consecutive 30-min slots this type needs (single source of truth):
+  // 1 = personal/professional, 2 = corporate, 3 = personal+corporate.
+  const slotCount = slotsForType(form.appointment_type);
   const selectedPreparer = preparers.find(p => p.id === form.preparer_id) ?? null;
 
-  // Unbooked slots, filtered by duration (corporate needs 2 consecutive unbooked).
-  // Today's already-passed slots are hidden from this convenience list (display only) —
-  // staff can still book a past time via the custom-time override below (back-dating).
+  // Unbooked slots eligible for this type. Multi-slot types need `slotCount`
+  // consecutive unbooked slots. Today's already-passed slots are hidden from this
+  // convenience list (display only) — staff can still book a past time via the
+  // custom-time override below (back-dating).
   const eligibleSlots = useMemo(() => {
     const unbooked = availableSlots.filter(
       s => !s.is_booked && isBookableEastern(form.date, s.start_time)
     );
-    if (!isCorporate) return unbooked;
-    // For 60-min: slot AND its consecutive 30-min slot must both be free
+    if (slotCount === 1) return unbooked;
     const slotSet = new Set(unbooked.map(s => s.start_time));
-    return unbooked.filter(s => slotSet.has(addThirtyMinutes(s.start_time)));
-  }, [availableSlots, isCorporate, form.date]);
+    return unbooked.filter(s => consecutiveFreeFrom(slotSet, s.start_time, slotCount));
+  }, [availableSlots, slotCount, form.date]);
 
   const hasOpenSlots = eligibleSlots.length > 0;
 
@@ -361,20 +364,11 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                     }`}
                   >
                     <span>{label}</span>
-                    {value === 'corporate_tax' && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        form.appointment_type === value
-                          ? 'bg-white/20 text-white'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>60 min</span>
-                    )}
-                    {value !== 'corporate_tax' && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        form.appointment_type === value
-                          ? 'bg-white/20 text-white'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>30 min</span>
-                    )}
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      form.appointment_type === value
+                        ? 'bg-white/20 text-white'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}>{slotsForType(value) * 30} min</span>
                   </button>
                 ))}
               </div>
@@ -483,9 +477,9 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Time Slot <span className="text-red-500">*</span>
-                    {isCorporate && (
+                    {slotCount > 1 && (
                       <span className="ml-2 text-xs font-normal text-gray-400">
-                        (60-min — shows consecutive pairs)
+                        ({slotCount * 30}-min — needs {slotCount} consecutive slots)
                       </span>
                     )}
                   </label>
@@ -505,8 +499,8 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           {eligibleSlots.map(slot => {
                             const isSelected = form.start_time === slot.start_time;
-                            const label = isCorporate
-                              ? `${formatTimeDisplay(slot.start_time)} – ${formatTimeDisplay(addThirtyMinutes(addThirtyMinutes(slot.start_time)))}`
+                            const label = slotCount > 1
+                              ? `${formatTimeDisplay(slot.start_time)} – ${formatTimeDisplay(endTimeFor(slot.start_time, form.appointment_type))}`
                               : formatTimeDisplay(slot.start_time);
                             return (
                               <button

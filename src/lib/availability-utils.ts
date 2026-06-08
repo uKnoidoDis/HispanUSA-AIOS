@@ -95,6 +95,59 @@ export function addThirtyMinutes(timeStr: string): string {
   return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}:00`;
 }
 
+// -----------------------------------------------------------------------
+// Appointment slot-count — SINGLE SOURCE OF TRUTH for how many consecutive
+// 30-min slots an appointment type occupies. Every booking / cancel / reject /
+// reassign / availability / display path derives count, slot list, and end_time
+// from here — never from a local `isCorporate ? 2 : 1` ternary (a new type would
+// silently fall to the 1-slot ELSE branch otherwise: book double-books the extra
+// slots, cancel orphans them).
+//   personal_corporate_tax = 90 min (3 slots)
+//   corporate_tax          = 60 min (2 slots)
+//   everything else        = 30 min (1 slot)
+// -----------------------------------------------------------------------
+export function slotsForType(appointmentType: string): 1 | 2 | 3 {
+  if (appointmentType === 'personal_corporate_tax') return 3;
+  if (appointmentType === 'corporate_tax') return 2;
+  return 1;
+}
+
+// The consecutive 30-min slot start times this appointment type occupies,
+// beginning at startTime (HH:MM or HH:MM:SS). Length === slotsForType(type).
+export function slotStartTimesFor(startTime: string, appointmentType: string): string[] {
+  const count = slotsForType(appointmentType);
+  const out: string[] = [];
+  let t = startTime.length === 5 ? `${startTime}:00` : startTime;
+  for (let i = 0; i < count; i++) {
+    out.push(t);
+    t = addThirtyMinutes(t);
+  }
+  return out;
+}
+
+// end_time for this appointment type beginning at startTime (= last slot + 30).
+export function endTimeFor(startTime: string, appointmentType: string): string {
+  const starts = slotStartTimesFor(startTime, appointmentType);
+  return addThirtyMinutes(starts[starts.length - 1]);
+}
+
+// True iff `count` consecutive 30-min slots beginning at firstStart are ALL in
+// freeStarts (a Set of free/unbooked HH:MM:SS starts). Generic replacement for
+// the scattered `set.has(addThirtyMinutes(...))` checks that assumed exactly one
+// extra slot. count=1 → simply whether firstStart itself is free.
+export function consecutiveFreeFrom(
+  freeStarts: Set<string>,
+  firstStart: string,
+  count: number,
+): boolean {
+  let t = firstStart.length === 5 ? `${firstStart}:00` : firstStart;
+  for (let i = 0; i < count; i++) {
+    if (!freeStarts.has(t)) return false;
+    t = addThirtyMinutes(t);
+  }
+  return true;
+}
+
 // Build the Map lookup key from a date string + start_time string
 export function slotKey(date: string, startTime: string): string {
   return `${date}_${startTime}`;

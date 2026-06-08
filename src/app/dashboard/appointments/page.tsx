@@ -21,6 +21,7 @@ interface AppointmentRow extends Appointment {
 const TYPE_LABELS: Record<string, string> = {
   personal_tax:          'Personal Tax',
   corporate_tax:         'Corporate Tax',
+  personal_corporate_tax: 'Personal + Corporate',
   professional_services: 'Professional Services',
 };
 

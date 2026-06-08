@@ -42,7 +42,7 @@ export interface CopyWeekRequest {
   source_week_start: string; // YYYY-MM-DD (must be a Monday)
 }
 
-export type AppointmentType = 'personal_tax' | 'corporate_tax' | 'professional_services';
+export type AppointmentType = 'personal_tax' | 'corporate_tax' | 'personal_corporate_tax' | 'professional_services';
 export type ServiceSubtype =
   | 'immigration_consulting'
   | 'immigration_case'

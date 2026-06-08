@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { addThirtyMinutes } from '@/lib/availability-utils';
+import { addThirtyMinutes, slotStartTimesFor } from '@/lib/availability-utils';
 import { sendCancellationMessage, type MessagingAppt } from '@/lib/messaging';
 
 const updateSchema = z.object({
@@ -76,10 +76,8 @@ export async function PATCH(
     const newPreparerId  = updateData.preparer_id;
     const date           = current.date as string;
     const startTime      = current.start_time as string;
-    const isCorporate    = (current.appointment_type as string) === 'corporate_tax';
-    const slotStartTimes = isCorporate
-      ? [startTime, addThirtyMinutes(startTime)]
-      : [startTime];
+    // Slot count from slotsForType() — frees/books exactly N (3 for personal+corporate).
+    const slotStartTimes = slotStartTimesFor(startTime, current.appointment_type as string);
 
     // 1. Free old preparer's slots
     for (const slotStart of slotStartTimes) {
@@ -133,10 +131,12 @@ export async function PATCH(
 
     if (current && (current.status as string) !== 'cancelled') {
       didCancel = true;
-      const isCorporate = (current.appointment_type as string) === 'corporate_tax';
-      const slotStartTimes = isCorporate
-        ? [current.start_time as string, addThirtyMinutes(current.start_time as string)]
-        : [current.start_time as string];
+      // Slot count from slotsForType() — cancel frees exactly N (3 for personal+corporate),
+      // so the extra slots can never be orphaned is_booked=true with no appointment.
+      const slotStartTimes = slotStartTimesFor(
+        current.start_time as string,
+        current.appointment_type as string,
+      );
 
       for (const slotStart of slotStartTimes) {
         await supabase

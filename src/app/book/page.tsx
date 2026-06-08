@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, Check, Phone, Mail, User, Clock, Calendar, F
 
 type Lang = 'en' | 'es';
 type Step = 'language' | 'type' | 'date' | 'time' | 'contact' | 'submitted';
-type ApptType = 'personal_tax' | 'corporate_tax' | 'professional_services';
+type ApptType = 'personal_tax' | 'corporate_tax' | 'personal_corporate_tax' | 'professional_services';
 type SubType =
   | 'immigration_consulting'
   | 'immigration_case'
@@ -74,16 +74,19 @@ const copy = {
     types: {
       personal_tax:          'Taxes — Personal',
       corporate_tax:         'Taxes — Corporate',
+      personal_corporate_tax: 'Taxes — Personal and Corporate',
       professional_services: 'Professional Services',
     },
     typeDescs: {
       personal_tax:          'Individual & family tax returns',
       corporate_tax:         'Business & corporate filings',
+      personal_corporate_tax: 'Personal and business taxes in one visit',
       professional_services: 'Legal, immigration & consulting',
     },
     typeDurations: {
       personal_tax:          '30 min',
       corporate_tax:         '60 min',
+      personal_corporate_tax: '90 min',
       professional_services: '30 min',
     },
     subtypeLabel: 'Select service type',
@@ -152,16 +155,19 @@ const copy = {
     types: {
       personal_tax:          'Impuestos — Personal',
       corporate_tax:         'Impuestos — Corporativo',
+      personal_corporate_tax: 'Impuestos — Personal y Corporativo',
       professional_services: 'Servicios Profesionales',
     },
     typeDescs: {
       personal_tax:          'Declaraciones individuales y familiares',
       corporate_tax:         'Declaraciones empresariales y corporativas',
+      personal_corporate_tax: 'Impuestos personales y empresariales en una visita',
       professional_services: 'Legal, inmigración y consultoría',
     },
     typeDurations: {
       personal_tax:          '30 min',
       corporate_tax:         '60 min',
+      personal_corporate_tax: '90 min',
       professional_services: '30 min',
     },
     subtypeLabel: 'Seleccione el tipo de servicio',
@@ -453,7 +459,7 @@ export default function BookPage() {
             <div>
               <h2 className="text-xl font-bold text-[#03296A] mb-6">{t.stepType}</h2>
               <div className="flex flex-col gap-3">
-                {(['personal_tax', 'corporate_tax', 'professional_services'] as ApptType[]).map(type => (
+                {(['personal_tax', 'corporate_tax', 'personal_corporate_tax', 'professional_services'] as ApptType[]).map(type => (
                   <TypeCard
                     key={type}
                     type={type}
@@ -794,8 +800,9 @@ function TypeCard({
 }) {
   const icons: Record<ApptType, React.ReactNode> = {
     personal_tax:          <User className="w-6 h-6" />,
-    corporate_tax:         <Briefcase className="w-6 h-6" />,
-    professional_services: <FileText className="w-6 h-6" />,
+    corporate_tax:          <Briefcase className="w-6 h-6" />,
+    personal_corporate_tax: <Briefcase className="w-6 h-6" />,
+    professional_services:  <FileText className="w-6 h-6" />,
   };
 
   return (

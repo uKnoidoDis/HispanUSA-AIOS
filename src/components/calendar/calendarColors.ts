@@ -52,9 +52,10 @@ export const CANCELLED_BORDER = '#EF4444'; // system red (brand skill: errors us
 export const CANCELLED_TEXT = '#6B7280'; // gray-500
 
 // ─── Appointment type colors (final, locked in the calendar color recode) ─────
-export const APPOINTMENT_TYPE_COLORS: Record<'personal_tax' | 'corporate_tax', string> = {
-  personal_tax:  '#C4B5FD', // light purple
-  corporate_tax: '#93C5FD', // light blue (also the Personal + Corporate combined)
+export const APPOINTMENT_TYPE_COLORS: Record<'personal_tax' | 'corporate_tax' | 'personal_corporate_tax', string> = {
+  personal_tax:           '#C4B5FD', // light purple
+  corporate_tax:          '#93C5FD', // light blue
+  personal_corporate_tax: '#93C5FD', // shares corporate blue (legend row "Personal + Corporate")
 };
 
 // Neutral dot fill for any preparer without a personal color (everyone but Oraise/Emely).
@@ -91,7 +92,7 @@ export function appointmentColor(
   if (appointmentType === 'professional_services') {
     return (serviceSubtype && SERVICE_SUBTYPE_COLORS[serviceSubtype as ServiceSubtype]) || '#64748B';
   }
-  return APPOINTMENT_TYPE_COLORS[appointmentType as 'personal_tax' | 'corporate_tax'] ?? '#64748B';
+  return APPOINTMENT_TYPE_COLORS[appointmentType as 'personal_tax' | 'corporate_tax' | 'personal_corporate_tax'] ?? '#64748B';
 }
 
 /** Dot color for a preparer identity (availability / booking modal / side panel): personal color or neutral. */
