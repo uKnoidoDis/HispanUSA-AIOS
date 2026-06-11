@@ -107,7 +107,45 @@ export async function POST(request: NextRequest) {
   const endTime = endTimeFor(startTime, input.appointment_type);
   const slotStartTimes = slotStartTimesFor(startTime, input.appointment_type);
 
-  // Step 1: Book availability slots (create override slot if none exists)
+  // Step 1: Occupancy guard — every target slot must be free BEFORE any write.
+  // A slot conflicts only if it EXISTS and is already booked (held by another
+  // appointment). Missing slots are fine — staff bookings may override-create
+  // them. Mirrors the reassign/reschedule guard in [id]/route.ts; previously
+  // this route fetched is_booked but never checked it (could double-book).
+  for (const slotStart of slotStartTimes) {
+    const { data: target } = await supabase
+      .from('availability_slots')
+      .select('id, is_booked')
+      .eq('preparer_id', input.preparer_id)
+      .eq('date', input.date)
+      .eq('start_time', slotStart)
+      .maybeSingle();
+
+    if (target && (target.is_booked as boolean)) {
+      return NextResponse.json(
+        { error: 'That time is already booked for this preparer. Please choose another time.' },
+        { status: 409 }
+      );
+    }
+  }
+
+  // Frees this request's target slots — rolls back partial work so a failed
+  // booking never leaves orphaned is_booked=true slots with no appointment
+  // behind them (the client book route's proven rollback pattern). Safe to
+  // apply blindly: the occupancy guard above ensured none of these slots were
+  // held by another appointment.
+  const rollbackSlots = async () => {
+    for (const slotStart of slotStartTimes) {
+      await supabase
+        .from('availability_slots')
+        .update({ is_booked: false })
+        .eq('preparer_id', input.preparer_id)
+        .eq('date', input.date)
+        .eq('start_time', slotStart);
+    }
+  };
+
+  // Step 2: Book availability slots (create override slot if none exists)
   for (const slotStart of slotStartTimes) {
     const { data: existingSlot } = await supabase
       .from('availability_slots')
@@ -123,7 +161,10 @@ export async function POST(request: NextRequest) {
         .from('availability_slots')
         .update({ is_booked: true })
         .eq('id', existingSlot.id);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        await rollbackSlots();
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     } else {
       // Override — create slot and mark booked in one insert
       const { error } = await supabase
@@ -135,11 +176,14 @@ export async function POST(request: NextRequest) {
           end_time: addThirtyMinutes(slotStart),
           is_booked: true,
         });
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        await rollbackSlots();
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     }
   }
 
-  // Step 2: Create appointment — status = confirmed immediately (staff booking)
+  // Step 3: Create appointment — status = confirmed immediately (staff booking)
   const phone = normalizePhone(input.client_phone);
   const autoSendChecklist = input.auto_send_checklist ?? (input.appointment_type !== 'professional_services');
 
@@ -167,9 +211,16 @@ export async function POST(request: NextRequest) {
     .select('*, preparer:preparers(id, name, color_hex, color_name)')
     .single();
 
-  if (apptError) return NextResponse.json({ error: apptError.message }, { status: 500 });
+  if (apptError) {
+    // Roll back slot booking on appointment insert failure — without this, the
+    // booked slots stay locked with no appointment behind them (the exact
+    // orphan bug found on Ruth's availability grid, June 2026).
+    await rollbackSlots();
+    console.error('[POST /api/appointments] appointment insert failed, slots rolled back:', apptError);
+    return NextResponse.json({ error: apptError.message }, { status: 500 });
+  }
 
-  // Step 3: Send confirmation messages
+  // Step 4: Send confirmation messages
   const messagingAppt: MessagingAppt = {
     id:                   appointment.id,
     client_name:          appointment.client_name,
