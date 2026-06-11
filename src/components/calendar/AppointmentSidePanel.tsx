@@ -5,6 +5,7 @@ import { X, Phone, Mail, User, Clock, Tag, MessageSquare, Globe, ChevronDown, Lo
 import { formatTime, formatPhone, formatDate } from '@/lib/utils';
 import type { CalendarAppt, CalendarPreparer, CalendarApptDetail, CalendarMessage } from './calendarTypes';
 import { preparerDotColor } from './calendarColors';
+import RescheduleModal from '@/components/appointments/RescheduleModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,9 @@ export default function AppointmentSidePanel({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Reschedule modal
+  const [showReschedule, setShowReschedule] = useState(false);
+
   // ── Fetch full detail (messages) on mount ─────────────────────────────────
   useEffect(() => {
     setMsgLoading(true);
@@ -155,6 +159,14 @@ export default function AppointmentSidePanel({
           <p className="text-xs text-gray-400 mt-0.5">
             {formatDate(appt.date)} · {formatTime(appt.start_time)}–{formatTime(appt.end_time)}
           </p>
+          {(appt.status === 'pending' || appt.status === 'confirmed') && (
+            <button
+              onClick={() => setShowReschedule(true)}
+              className="text-xs text-[#03296A] font-medium hover:underline mt-1"
+            >
+              Reschedule
+            </button>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -375,6 +387,35 @@ export default function AppointmentSidePanel({
           <p className="text-center text-[11px] text-gray-400 mt-1.5">No unsaved changes</p>
         )}
       </div>
+
+      {/* Reschedule modal */}
+      {showReschedule && (
+        <RescheduleModal
+          appt={{
+            id:               appt.id,
+            client_name:      appt.client_name,
+            appointment_type: appt.appointment_type,
+            preparer_id:      appt.preparer_id,
+            date:             appt.date,
+            start_time:       appt.start_time,
+          }}
+          onClose={() => setShowReschedule(false)}
+          onSuccess={async () => {
+            setShowReschedule(false);
+            // Pull the updated row and propagate to the calendar so the block moves.
+            try {
+              const res = await fetch(`/api/appointments/${appt.id}`);
+              if (res.ok) {
+                const detail: CalendarApptDetail = await res.json();
+                setMessages(detail.messages ?? []);
+                onSave(detail);
+              }
+            } catch {
+              // Calendar refreshes on next interaction; the reschedule itself succeeded.
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
