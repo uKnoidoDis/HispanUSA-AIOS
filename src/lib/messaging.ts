@@ -52,7 +52,8 @@ type MessageType =
   | 'reminder_3d'
   | 'reminder_1d'
   | 'checklist_manual'
-  | 'cancellation';
+  | 'cancellation'
+  | 'reschedule';
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -456,6 +457,72 @@ export async function sendCancellationMessage(
     const r = await trySendEmail(appt.client_email, subject, emailHtml);
     Object.assign(emailResult, r);
     await logMessage(supabase, appt.id, 'email', 'cancellation', r.sent ? 'sent' : 'failed', r.error ?? undefined);
+  }
+
+  return { sms: { sent: false, error: null }, email: emailResult };
+}
+
+/**
+ * sendRescheduleMessage
+ * Notifies the client that a booked appointment has been MOVED to a new
+ * date/time ("moved from X to Y"). The appt passed in carries the NEW
+ * date/start_time (the updated row); the OLD date/time are passed separately.
+ *
+ * EMAIL ONLY for now: SMS is intentionally not sent while the Twilio A2P 10DLC
+ * campaign is under carrier review (it would only log a failure). The SMS body
+ * is kept below, commented, so the channel switches on without a rewrite once
+ * A2P is approved — same dormant pattern as sendPendingMessage/sendCancellationMessage.
+ */
+export async function sendRescheduleMessage(
+  appt: MessagingAppt,
+  oldDate: string,
+  oldStartTime: string,
+  supabase: SupabaseClient
+): Promise<SendResult> {
+  const { language: lang } = appt;
+  const oldDateDisplay = formatDate(oldDate);
+  const oldTimeDisplay = formatTime(oldStartTime);
+  const newDateDisplay = formatDate(appt.date);
+  const newTimeDisplay = formatTime(appt.start_time);
+
+  // ── Email ───────────────────────────────────────────────────────────────────
+  const subject = lang === 'es'
+    ? 'Cita Reprogramada — HispanUSA'
+    : 'Appointment Rescheduled — HispanUSA';
+
+  const bodyHtml = lang === 'es'
+    ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
+       <p style="margin:0 0 4px;color:#374151;">Su cita en HispanUSA ha sido <strong>reprogramada</strong>.</p>
+       <p style="margin:12px 0 4px;color:#6b7280;font-size:13px;font-weight:bold;text-transform:uppercase;">Anterior:</p>
+       <div style="opacity:0.65;">${apptInfoBlock(oldDateDisplay, oldTimeDisplay)}</div>
+       <p style="margin:12px 0 4px;color:#03296A;font-size:13px;font-weight:bold;text-transform:uppercase;">Nueva:</p>
+       ${apptInfoBlock(newDateDisplay, newTimeDisplay)}
+       <p style="margin:12px 0 12px;color:#374151;">Si la nueva fecha no le funciona, llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
+    : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
+       <p style="margin:0 0 4px;color:#374151;">Your HispanUSA appointment has been <strong>rescheduled</strong>.</p>
+       <p style="margin:12px 0 4px;color:#6b7280;font-size:13px;font-weight:bold;text-transform:uppercase;">Previous:</p>
+       <div style="opacity:0.65;">${apptInfoBlock(oldDateDisplay, oldTimeDisplay)}</div>
+       <p style="margin:12px 0 4px;color:#03296A;font-size:13px;font-weight:bold;text-transform:uppercase;">New:</p>
+       ${apptInfoBlock(newDateDisplay, newTimeDisplay)}
+       <p style="margin:12px 0 12px;color:#374151;">If the new time doesn't work for you, please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
+
+  const emailHtml = wrapEmail(bodyHtml);
+
+  // ── SMS (disabled until A2P 10DLC approves; kept for easy re-enable) ─────────
+  // const smsBody = lang === 'es'
+  //   ? `HispanUSA: su cita fue reprogramada del ${oldDateDisplay} ${oldTimeDisplay} al ${newDateDisplay} a las ${newTimeDisplay}. ¿Preguntas? ${OFFICE_PHONE}`
+  //   : `HispanUSA: your appointment was rescheduled from ${oldDateDisplay} ${oldTimeDisplay} to ${newDateDisplay} at ${newTimeDisplay}. Questions? ${OFFICE_PHONE}`;
+  // const smsResult = await trySendSMS(appt.client_phone, smsBody);
+  // await logMessage(supabase, appt.id, 'sms', 'reschedule', smsResult.sent ? 'sent' : 'failed', smsResult.error ?? undefined);
+
+  // ── Send (email only) ─────────────────────────────────────────────────────────
+  const emailResult = { sent: false, error: null as string | null };
+  if (appt.client_email) {
+    const r = await trySendEmail(appt.client_email, subject, emailHtml);
+    Object.assign(emailResult, r);
+    await logMessage(supabase, appt.id, 'email', 'reschedule', r.sent ? 'sent' : 'failed', r.error ?? undefined);
   }
 
   return { sms: { sent: false, error: null }, email: emailResult };

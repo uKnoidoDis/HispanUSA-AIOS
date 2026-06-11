@@ -8,6 +8,7 @@ import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import { formatTime } from '@/lib/utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
 import { appointmentColor } from '@/components/calendar/calendarColors';
+import RescheduleModal from '@/components/appointments/RescheduleModal';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: strin
 };
 
 const MESSAGE_TYPE_LABELS: Record<string, string> = {
+  pending:           'Request Received',
   confirmation:      'Booking Confirmation',
   reminder_7d:       '7-Day Reminder',
   reminder_3d:       '3-Day Reminder',
@@ -62,6 +64,8 @@ const MESSAGE_TYPE_LABELS: Record<string, string> = {
   approval:          'Approval',
   rejection:         'Rejection',
   checklist_manual:  'Checklist (Manual)',
+  cancellation:      'Cancellation Notice',
+  reschedule:        'Reschedule Notice',
 };
 
 function formatDateDisplay(dateStr: string): string {
@@ -89,6 +93,9 @@ export default function AppointmentDetailPage({
   const [showReassign, setShowReassign]   = useState(false);
   const [reassignTo, setReassignTo]       = useState('');
   const [reassigning, setReassigning]     = useState(false);
+
+  // Reschedule modal
+  const [showReschedule, setShowReschedule] = useState(false);
 
   // Status update
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -244,7 +251,17 @@ export default function AppointmentDetailPage({
           </Card>
 
           <Card>
-            <CardHeader><h3 className="font-semibold text-gray-900">Appointment</h3></CardHeader>
+            <CardHeader className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Appointment</h3>
+              {(appt.status === 'pending' || appt.status === 'confirmed') && (
+                <button
+                  onClick={() => setShowReschedule(true)}
+                  className="text-xs text-[#03296A] font-medium hover:underline"
+                >
+                  Reschedule
+                </button>
+              )}
+            </CardHeader>
             <CardBody className="space-y-1.5 text-sm text-gray-700">
               <p className="font-medium text-gray-900">{formatDateDisplay(appt.date)}</p>
               <p>{formatTime(appt.start_time)} – {formatTime(appt.end_time)}</p>
@@ -431,6 +448,26 @@ export default function AppointmentDetailPage({
           </Card>
         )}
       </div>
+
+      {/* Reschedule modal */}
+      {showReschedule && (
+        <RescheduleModal
+          appt={{
+            id:               appt.id,
+            client_name:      appt.client_name,
+            appointment_type: appt.appointment_type,
+            preparer_id:      appt.preparer_id,
+            date:             appt.date,
+            start_time:       appt.start_time,
+          }}
+          onClose={() => setShowReschedule(false)}
+          onSuccess={async () => {
+            setShowReschedule(false);
+            await load();
+            showToast('Appointment rescheduled — client notified');
+          }}
+        />
+      )}
     </>
   );
 }
