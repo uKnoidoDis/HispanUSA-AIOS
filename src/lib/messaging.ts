@@ -74,17 +74,33 @@ async function logMessage(
   status: 'sent' | 'failed',
   errorMsg?: string
 ): Promise<void> {
+  const row = {
+    appointment_id: appointmentId,
+    channel,
+    message_type: messageType,
+    status,
+    error_message: errorMsg ?? null,
+  };
+  // supabase-js v2 RETURNS insert errors in { error } rather than throwing, so a
+  // try/catch alone never sees them — failed audit rows vanished silently (2 of 4
+  // reschedule rows lost in prod, Jun 11 2026). Check the returned error and retry
+  // once; if the retry also fails, surface it loudly. The outer catch stays for the
+  // one case that DOES throw (network-level fetch failure). Non-blocking either way:
+  // this function never throws, so a log failure can never fail the send or request.
   try {
-    await supabase.from('messages').insert({
-      appointment_id: appointmentId,
-      channel,
-      message_type: messageType,
-      status,
-      error_message: errorMsg ?? null,
-    });
-  } catch {
-    // Non-critical — log failure doesn't block the application
-    console.error(`[MESSAGING] Failed to log ${channel} ${messageType} for appointment ${appointmentId}`);
+    const { error } = await supabase.from('messages').insert(row);
+    if (!error) return;
+    const { error: retryError } = await supabase.from('messages').insert(row);
+    if (!retryError) return;
+    console.error(
+      `[MESSAGING] AUDIT ROW LOST after retry: ${channel} ${messageType} for appointment ${appointmentId} (send status: ${status})`,
+      { firstError: error, retryError },
+    );
+  } catch (e) {
+    console.error(
+      `[MESSAGING] AUDIT ROW LOST (threw): ${channel} ${messageType} for appointment ${appointmentId} (send status: ${status})`,
+      e,
+    );
   }
 }
 
