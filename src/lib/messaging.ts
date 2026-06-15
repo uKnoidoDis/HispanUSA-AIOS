@@ -303,15 +303,25 @@ export async function sendPendingMessage(
  */
 export async function sendChecklistMessage(
   appt: MessagingAppt,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  opts?: { confirm?: boolean }
 ): Promise<SendResult> {
   const { language: lang } = appt;
   const dateDisplay = formatDate(appt.date);
+  const timeDisplay = formatTime(appt.start_time);
   const checklistTypes = getChecklistTypes(appt.appointment_type);
+
+  // confirm = the tax-approval path: this ONE email both confirms the appointment
+  // (date/time/address block, above) and lists the documents (below), replacing the
+  // documents-only email. Logged as 'approval'. Default (no opts) = unchanged
+  // documents-only behavior — the staff-booking auto-send and the manual
+  // Send-Checklist button both call without opts and are untouched.
+  const confirm = opts?.confirm === true;
+  const logType: MessageType = confirm ? 'approval' : 'checklist_manual';
 
   // ── SMS ─────────────────────────────────────────────────────────────────────
   const hasSpecificChecklist = checklistTypes !== null;
-  const smsBody = lang === 'es'
+  let smsBody = lang === 'es'
     ? hasSpecificChecklist
       ? `Hola ${appt.client_name.split(' ')[0]}, su cita en HispanUSA es el ${dateDisplay}. Revise su correo para la lista de documentos requeridos. ¿Preguntas? ${OFFICE_PHONE}`
       : `Hola ${appt.client_name.split(' ')[0]}, por favor traiga cualquier documento relevante a su cita en HispanUSA el ${dateDisplay}. ¿Preguntas? ${OFFICE_PHONE}`
@@ -319,10 +329,19 @@ export async function sendChecklistMessage(
       ? `Hi ${appt.client_name.split(' ')[0]}, your HispanUSA appointment is ${dateDisplay}. Check your email for required documents. Questions? ${OFFICE_PHONE}`
       : `Hi ${appt.client_name.split(' ')[0]}, please bring any relevant documents to your HispanUSA appointment on ${dateDisplay}. Questions? ${OFFICE_PHONE}`;
 
+  // Confirm path: lead the SMS with the confirmation (still email for the doc list).
+  if (confirm) {
+    smsBody = lang === 'es'
+      ? `Hola ${appt.client_name.split(' ')[0]}, su cita en HispanUSA el ${dateDisplay} a las ${timeDisplay} está confirmada. Revise su correo para los documentos a traer. ¿Preguntas? ${OFFICE_PHONE}`
+      : `Hi ${appt.client_name.split(' ')[0]}, your HispanUSA appointment on ${dateDisplay} at ${timeDisplay} is confirmed. Check your email for the documents to bring. Questions? ${OFFICE_PHONE}`;
+  }
+
   // ── Email ───────────────────────────────────────────────────────────────────
-  const subject = lang === 'es'
-    ? `Documentos Requeridos — HispanUSA (${dateDisplay})`
-    : `Required Documents — HispanUSA (${dateDisplay})`;
+  const subject = confirm
+    ? (lang === 'es' ? 'Cita Confirmada — HispanUSA' : 'Appointment Confirmed — HispanUSA')
+    : (lang === 'es'
+        ? `Documentos Requeridos — HispanUSA (${dateDisplay})`
+        : `Required Documents — HispanUSA (${dateDisplay})`);
 
   // Render checklist HTML or use generic professional services text
   let checklistHtml = '';
@@ -340,14 +359,32 @@ export async function sendChecklistMessage(
          <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.
        </p>`;
 
+  // Confirmation lead (date/time/address) shown ABOVE the documents on the confirm
+  // path; empty otherwise. The docs-intro line then omits the repeated date on the
+  // confirm path (it's already in the block) — non-confirm keeps today's wording.
+  const confirmLeadEs = confirm
+    ? `<p style="margin:0 0 4px;color:#374151;">Su cita ha sido <strong>confirmada</strong>:</p>${apptInfoBlock(dateDisplay, timeDisplay)}`
+    : '';
+  const confirmLeadEn = confirm
+    ? `<p style="margin:0 0 4px;color:#374151;">Your appointment has been <strong>confirmed</strong>:</p>${apptInfoBlock(dateDisplay, timeDisplay)}`
+    : '';
+  const docsIntroEs = confirm
+    ? 'Por favor prepare los siguientes documentos antes de su cita:'
+    : `Su cita en HispanUSA es el <strong>${dateDisplay}</strong>. Por favor prepare los siguientes documentos antes de su cita:`;
+  const docsIntroEn = confirm
+    ? 'Please prepare the following documents before your appointment:'
+    : `Your HispanUSA appointment is on <strong>${dateDisplay}</strong>. Please prepare the following documents before your appointment:`;
+
   const bodyHtml = lang === 'es'
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
-       <p style="margin:0 0 16px;color:#374151;">Su cita en HispanUSA es el <strong>${dateDisplay}</strong>. Por favor prepare los siguientes documentos antes de su cita:</p>
+       ${confirmLeadEs}
+       <p style="margin:0 0 16px;color:#374151;">${docsIntroEs}</p>
        ${checklistHtml || genericDocsMsg}
        <p style="margin:0 0 12px;color:#374151;">¿Preguntas? Llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
-       <p style="margin:0 0 16px;color:#374151;">Your HispanUSA appointment is on <strong>${dateDisplay}</strong>. Please prepare the following documents before your appointment:</p>
+       ${confirmLeadEn}
+       <p style="margin:0 0 16px;color:#374151;">${docsIntroEn}</p>
        ${checklistHtml || genericDocsMsg}
        <p style="margin:0 0 12px;color:#374151;">Questions? Call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
@@ -356,13 +393,13 @@ export async function sendChecklistMessage(
 
   // ── Send ────────────────────────────────────────────────────────────────────
   const smsResult = await trySendSMS(appt.client_phone, smsBody);
-  await logMessage(supabase, appt.id, 'sms', 'checklist_manual', smsResult.sent ? 'sent' : 'failed', smsResult.error ?? undefined);
+  await logMessage(supabase, appt.id, 'sms', logType, smsResult.sent ? 'sent' : 'failed', smsResult.error ?? undefined);
 
   const emailResult = { sent: false, error: null as string | null };
   if (appt.client_email) {
     const r = await trySendEmail(appt.client_email, subject, emailHtml);
     Object.assign(emailResult, r);
-    await logMessage(supabase, appt.id, 'email', 'checklist_manual', r.sent ? 'sent' : 'failed', r.error ?? undefined);
+    await logMessage(supabase, appt.id, 'email', logType, r.sent ? 'sent' : 'failed', r.error ?? undefined);
   }
 
   // Mark checklist_sent = true if at least one channel succeeded
