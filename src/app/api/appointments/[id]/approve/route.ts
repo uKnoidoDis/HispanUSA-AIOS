@@ -3,9 +3,12 @@ import { createServerClient } from '@/lib/supabase/server';
 import { sendConfirmationMessage, sendChecklistMessage, type MessagingAppt } from '@/lib/messaging';
 
 // POST /api/appointments/[id]/approve
-// Sets status = confirmed, then sends:
-//   - auto_send_checklist = true  → sendChecklistMessage (checklist + appt info)
-//   - auto_send_checklist = false → sendConfirmationMessage (appt info only)
+// Sets status = confirmed, then sends ONE email:
+//   - auto_send_checklist = true  (tax) → sendChecklistMessage({ confirm: true })
+//        = a merged "Appointment Confirmed" email: confirmation block (date/time/
+//          address) ABOVE the document checklist. Logged as 'approval'.
+//   - auto_send_checklist = false (pro services) → sendConfirmationMessage('approval')
+//          = appt-only confirmation (no checklist). Unchanged.
 
 export async function POST(
   _request: NextRequest,
@@ -56,8 +59,10 @@ export async function POST(
   // Send messages based on auto_send_checklist setting
   let msgResult;
   if (messagingAppt.auto_send_checklist) {
-    msgResult = await sendChecklistMessage(messagingAppt, supabase);
+    // Tax types: ONE merged email — confirmation (date/time/address) + documents.
+    msgResult = await sendChecklistMessage(messagingAppt, supabase, { confirm: true });
   } else {
+    // Professional services: confirmation only (no checklist).
     msgResult = await sendConfirmationMessage(messagingAppt, supabase, 'approval');
   }
 
