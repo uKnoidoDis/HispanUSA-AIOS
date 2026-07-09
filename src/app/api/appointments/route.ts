@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { normalizePhone } from '@/lib/utils';
-import { addThirtyMinutes, slotStartTimesFor, endTimeFor } from '@/lib/availability-utils';
+import { addThirtyMinutes, slotStartTimesFor, endTimeFor, includesCorporate } from '@/lib/availability-utils';
 import { sendConfirmationMessage, sendChecklistMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
@@ -11,6 +11,7 @@ const createAppointmentSchema = z.object({
   client_name:      z.string().min(1, 'Client name required'),
   client_phone:     z.string().min(7, 'Valid phone required'),
   client_email:     z.string().email().optional().nullable(),
+  company_name:     z.string().trim().max(200).optional().nullable(), // optional for staff (warn-don't-block in the modal)
   appointment_type: z.enum(['personal_tax', 'corporate_tax', 'personal_corporate_tax', 'professional_services']),
   service_subtype:  z.enum([
     'immigration_consulting', 'immigration_case',
@@ -194,6 +195,9 @@ export async function POST(request: NextRequest) {
       client_name:          input.client_name,
       client_phone:         phone,
       client_email:         input.client_email ?? null,
+      company_name:         includesCorporate(input.appointment_type)
+        ? (input.company_name?.trim() || null)
+        : null,
       appointment_type:     input.appointment_type,
       service_subtype:      input.service_subtype ?? null,
       service_subtype_other: input.service_subtype === 'other'

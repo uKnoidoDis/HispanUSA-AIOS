@@ -6,6 +6,7 @@ import Header from '@/components/dashboard/Header';
 import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import { formatTime } from '@/lib/utils';
+import { includesCorporate } from '@/lib/availability-utils';
 import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
 import { appointmentColor } from '@/components/calendar/calendarColors';
 import RescheduleModal from '@/components/appointments/RescheduleModal';
@@ -242,6 +243,11 @@ export default function AppointmentDetailPage({
             <CardHeader><h3 className="font-semibold text-gray-900">Client</h3></CardHeader>
             <CardBody className="space-y-1 text-sm text-gray-700">
               <p className="font-medium text-base text-gray-900">{appt.client_name}</p>
+              {includesCorporate(appt.appointment_type) && (
+                appt.company_name
+                  ? <p className="text-gray-700">{appt.company_name}</p>
+                  : <p className="text-gray-400 italic">Company: — not provided</p>
+              )}
               <p>{appt.client_phone}</p>
               {appt.client_email && <p className="text-gray-500">{appt.client_email}</p>}
               <p className="text-xs text-gray-400 uppercase mt-1">

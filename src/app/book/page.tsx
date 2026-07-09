@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Check, Phone, Mail, User, Clock, Calendar, FileText, Briefcase } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Phone, Mail, User, Clock, Calendar, FileText, Briefcase, Building2 } from 'lucide-react';
+import { includesCorporate } from '@/lib/availability-utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ interface BookingState {
   name:             string;
   phone:            string;
   email:            string;
+  company:          string;   // required when the type includes a corporate return
   smsConsent:       boolean;
   otherDetail:      string;   // free text when serviceSubtype === 'other'
 }
@@ -64,6 +66,8 @@ const copy = {
     emailLabel:      'Email Address (optional)',
     emailPlaceholder: 'maria@example.com',
     emailNote:       "We'll send your confirmation here.",
+    companyLabel:    'Company Name',
+    companyPlaceholder: 'Your Business LLC',
     requiredError:   'This field is required',
     phoneError:      'Enter a valid US phone number',
     emailError:      'Enter a valid email address',
@@ -145,6 +149,8 @@ const copy = {
     emailLabel:      'Correo Electrónico (opcional)',
     emailPlaceholder: 'maria@ejemplo.com',
     emailNote:       'Le enviaremos la confirmación aquí.',
+    companyLabel:    'Nombre de la Empresa',
+    companyPlaceholder: 'Su Empresa LLC',
     requiredError:   'Este campo es requerido',
     phoneError:      'Ingrese un número de teléfono de EE.UU. válido',
     emailError:      'Ingrese un correo electrónico válido',
@@ -251,6 +257,7 @@ export default function BookPage() {
     name:            '',
     phone:           '',
     email:           '',
+    company:         '',
     smsConsent:      false,
     otherDetail:     '',
   });
@@ -296,6 +303,9 @@ export default function BookPage() {
   function validateContact(): boolean {
     const errs: Record<string, string> = {};
     if (!booking.name.trim()) errs.name = t.requiredError;
+    if (booking.appointmentType && includesCorporate(booking.appointmentType) && !booking.company.trim()) {
+      errs.company = t.requiredError;
+    }
     if (!booking.phone.trim()) {
       errs.phone = t.requiredError;
     } else if (!isValidUSPhone(booking.phone)) {
@@ -323,6 +333,9 @@ export default function BookPage() {
           client_name:      booking.name.trim(),
           client_phone:     booking.phone,
           client_email:     booking.email || null,
+          company_name:     booking.appointmentType && includesCorporate(booking.appointmentType)
+            ? booking.company.trim()
+            : null,
           appointment_type: booking.appointmentType,
           service_subtype:  booking.serviceSubtype || null,
           service_subtype_other: booking.serviceSubtype === 'other' ? booking.otherDetail.trim() : null,
@@ -599,6 +612,25 @@ export default function BookPage() {
                   />
                 </FormField>
 
+                {booking.appointmentType && includesCorporate(booking.appointmentType) && (
+                  <FormField
+                    label={t.companyLabel}
+                    icon={<Building2 className="w-4 h-4" />}
+                    error={errors.company}
+                  >
+                    <input
+                      type="text"
+                      placeholder={t.companyPlaceholder}
+                      value={booking.company}
+                      onChange={e => { setBooking(b => ({ ...b, company: e.target.value })); setErrors(er => ({ ...er, company: undefined })); }}
+                      autoComplete="organization"
+                      className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors placeholder:text-gray-400 ${
+                        errors.company ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
+                      }`}
+                    />
+                  </FormField>
+                )}
+
                 <FormField
                   label={t.phoneLabel}
                   icon={<Phone className="w-4 h-4" />}
@@ -735,6 +767,9 @@ export default function BookPage() {
                 )}
                 {booking.name && (
                   <SummaryRow icon={<User className="w-4 h-4" />} label={booking.name} />
+                )}
+                {booking.company.trim() && booking.appointmentType && includesCorporate(booking.appointmentType) && (
+                  <SummaryRow icon={<Building2 className="w-4 h-4" />} label={booking.company.trim()} />
                 )}
                 {booking.phone && (
                   <SummaryRow icon={<Phone className="w-4 h-4" />} label={booking.phone} />

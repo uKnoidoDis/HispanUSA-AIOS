@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Phone, Mail, User, Clock, Tag, MessageSquare, Globe, ChevronDown, Loader2, AlertCircle } from 'lucide-react';
+import { X, Phone, Mail, User, Clock, Tag, MessageSquare, Globe, ChevronDown, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import { formatTime, formatPhone, formatDate } from '@/lib/utils';
+import { includesCorporate } from '@/lib/availability-utils';
 import type { CalendarAppt, CalendarPreparer, CalendarApptDetail, CalendarMessage } from './calendarTypes';
 import { preparerDotColor } from './calendarColors';
 import RescheduleModal from '@/components/appointments/RescheduleModal';
@@ -200,6 +201,15 @@ export default function AppointmentSidePanel({
         {/* Client info */}
         <div className="px-5 py-4 space-y-3 border-b border-gray-100">
           <SectionLabel icon={<User className="w-3.5 h-3.5" />} label="Client" />
+
+          {includesCorporate(appt.appointment_type) && (
+            <div className="flex items-center gap-2 text-sm">
+              <Building2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              {appt.company_name
+                ? <span className="text-gray-700 truncate">{appt.company_name}</span>
+                : <span className="text-gray-400 italic">Company: — not provided</span>}
+            </div>
+          )}
 
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />

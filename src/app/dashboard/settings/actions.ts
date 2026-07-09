@@ -2,6 +2,7 @@
 
 import { cookies, headers } from 'next/headers';
 import { createServerClient as createSsrClient } from '@supabase/ssr';
+import { sessionCookieOptions } from '@/lib/supabase/session-cookie-options';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase/server';
 import { sendPasswordChangeConfirmation } from '@/lib/password-confirmation-email';
@@ -31,7 +32,7 @@ function makeSsrClient() {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            cookieStore.set(name, value, sessionCookieOptions(options));
           });
         },
       },
