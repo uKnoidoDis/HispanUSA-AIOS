@@ -2,6 +2,7 @@
 
 import { cookies, headers } from 'next/headers';
 import { createServerClient as createSsrClient } from '@supabase/ssr';
+import { sessionCookieOptions } from '@/lib/supabase/session-cookie-options';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase/server';
@@ -35,7 +36,7 @@ export async function changeForcedPassword(input: {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            cookieStore.set(name, value, sessionCookieOptions(options));
           });
         },
       },
