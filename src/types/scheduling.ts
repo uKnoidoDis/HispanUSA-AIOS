@@ -62,6 +62,7 @@ export interface Appointment {
   client_name: string;
   client_phone: string;
   client_email: string | null;
+  company_name: string | null; // corporate types only; nullable (staff may skip)
   appointment_type: AppointmentType;
   service_subtype: ServiceSubtype | null;
   service_subtype_other: string | null;

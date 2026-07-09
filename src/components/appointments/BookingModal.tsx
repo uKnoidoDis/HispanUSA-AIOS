@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
-import { formatTimeDisplay, slotsForType, consecutiveFreeFrom, endTimeFor } from '@/lib/availability-utils';
+import { formatTimeDisplay, slotsForType, consecutiveFreeFrom, endTimeFor, includesCorporate } from '@/lib/availability-utils';
 import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
 import { preparerDotColor } from '@/components/calendar/calendarColors';
 
@@ -17,6 +17,7 @@ type FormState = {
   client_name:          string;
   client_phone:         string;
   client_email:         string;
+  company_name:         string;
   appointment_type:     AppointmentType | '';
   service_subtype:      ServiceSubtype | '';
   service_subtype_other: string;
@@ -54,6 +55,7 @@ const INITIAL_FORM: FormState = {
   client_name:          '',
   client_phone:         '',
   client_email:         '',
+  company_name:         '',
   appointment_type:     '',
   service_subtype:      '',
   service_subtype_other: '',
@@ -192,6 +194,9 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
           client_name:          form.client_name.trim(),
           client_phone:         normalizePhone(form.client_phone),
           client_email:         form.client_email.trim() || null,
+          company_name:         includesCorporate(form.appointment_type)
+            ? (form.company_name.trim() || null)
+            : null,
           appointment_type:     form.appointment_type,
           service_subtype:      form.service_subtype || null,
           service_subtype_other: form.service_subtype === 'other' ? form.service_subtype_other.trim() : null,
@@ -310,6 +315,31 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
                 />
               </div>
+
+              {/* Company name — corporate types only. Optional (warn-don't-block):
+                  there is no edit-appointment UI yet, so a skipped company name
+                  can't be added later — the hint makes skipping a choice, not an
+                  oversight. */}
+              {includesCorporate(form.appointment_type) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Name <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.company_name}
+                    onChange={e => set('company_name', e.target.value)}
+                    placeholder="Client's Business LLC"
+                    maxLength={200}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                  />
+                  {!form.company_name.trim() && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      No company name — add it if the client has it handy.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Language */}
               <div>
