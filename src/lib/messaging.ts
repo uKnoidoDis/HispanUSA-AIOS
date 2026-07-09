@@ -21,6 +21,12 @@ import type { ChecklistType } from '@/types';
 
 const OFFICE_PHONE   = '954-934-0194';
 const OFFICE_ADDRESS = '8050 N University Dr Suite 206, Tamarac FL 33321';
+// Public booking portal. The /book path is required — the bare subdomain still
+// lands on the staff dashboard. Email copy only; SMS bodies deliberately exclude
+// this link (dead channel under A2P review, and SMS wording is part of the A2P
+// claim surface — don't churn it mid-resubmission).
+const BOOKING_URL = 'https://book.hispanusa.com/book';
+const BOOKING_LINK_HTML = `<a href="${BOOKING_URL}" style="color:#03296A;">book.hispanusa.com/book</a>`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,12 +220,12 @@ export async function sendConfirmationMessage(
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Su cita ha sido confirmada:</p>
        ${apptInfoBlock(dateDisplay, timeDisplay)}
-       <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> o reserve en línea en ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Your appointment has been confirmed:</p>
        ${apptInfoBlock(dateDisplay, timeDisplay)}
-       <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> or book online at ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -436,11 +442,11 @@ export async function sendRejectionMessage(
   const bodyHtml = lang === 'es'
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 16px;color:#374151;">Lamentamos informarle que el horario solicitado no está disponible en este momento.</p>
-       <p style="margin:0 0 12px;color:#374151;">Por favor llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> para coordinar una nueva cita.</p>
+       <p style="margin:0 0 12px;color:#374151;">Por favor llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> para coordinar una nueva cita, o reserve en línea en ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 16px;color:#374151;">Unfortunately your requested appointment time is unavailable.</p>
-       <p style="margin:0 0 12px;color:#374151;">Please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> to schedule a new appointment.</p>
+       <p style="margin:0 0 12px;color:#374151;">Please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> to schedule a new appointment, or book online at ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -487,12 +493,12 @@ export async function sendCancellationMessage(
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Su cita en HispanUSA ha sido <strong>cancelada</strong>:</p>
        ${apptInfoBlock(dateDisplay, timeDisplay)}
-       <p style="margin:0 0 12px;color:#374151;">Si desea reservar una nueva cita, llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">Si desea reservar una nueva cita, llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> o reserve en línea en ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Your HispanUSA appointment has been <strong>cancelled</strong>:</p>
        ${apptInfoBlock(dateDisplay, timeDisplay)}
-       <p style="margin:0 0 12px;color:#374151;">To book a new appointment, please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:0 0 12px;color:#374151;">To book a new appointment, please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> or book online at ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -550,7 +556,7 @@ export async function sendRescheduleMessage(
        <div style="opacity:0.65;">${apptInfoBlock(oldDateDisplay, oldTimeDisplay)}</div>
        <p style="margin:12px 0 4px;color:#03296A;font-size:13px;font-weight:bold;text-transform:uppercase;">Nueva:</p>
        ${apptInfoBlock(newDateDisplay, newTimeDisplay)}
-       <p style="margin:12px 0 12px;color:#374151;">Si la nueva fecha no le funciona, llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:12px 0 12px;color:#374151;">Si la nueva fecha no le funciona, llámenos al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> o reserve en línea en ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Your HispanUSA appointment has been <strong>rescheduled</strong>.</p>
@@ -558,7 +564,7 @@ export async function sendRescheduleMessage(
        <div style="opacity:0.65;">${apptInfoBlock(oldDateDisplay, oldTimeDisplay)}</div>
        <p style="margin:12px 0 4px;color:#03296A;font-size:13px;font-weight:bold;text-transform:uppercase;">New:</p>
        ${apptInfoBlock(newDateDisplay, newTimeDisplay)}
-       <p style="margin:12px 0 12px;color:#374151;">If the new time doesn't work for you, please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a>.</p>
+       <p style="margin:12px 0 12px;color:#374151;">If the new time doesn't work for you, please call us at <a href="tel:${OFFICE_PHONE}" style="color:#03296A;"><strong>${OFFICE_PHONE}</strong></a> or book online at ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   const emailHtml = wrapEmail(bodyHtml);
@@ -623,12 +629,12 @@ export async function sendReminderMessage(
       ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">Este es un recordatorio de que su cita en HispanUSA es <strong>MAÑANA</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">Si necesita reprogramar, llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> lo antes posible.</p>
+         <p style="margin:0 0 12px;color:#374151;">Si necesita reprogramar, llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> lo antes posible, o reserve en línea en ${BOOKING_LINK_HTML}.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
       : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">This is a reminder that your HispanUSA appointment is <strong>TOMORROW</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">If you need to reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> as soon as possible.</p>
+         <p style="margin:0 0 12px;color:#374151;">If you need to reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> as soon as possible, or book online at ${BOOKING_LINK_HTML}.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
   } else if (isDocReminder) {
@@ -672,12 +678,12 @@ export async function sendReminderMessage(
       ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">Este es un recordatorio de que su cita en HispanUSA es en <strong>${daysLabel}</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
+         <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> o reserve en línea en ${BOOKING_LINK_HTML}.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
       : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
          <p style="margin:0 0 4px;color:#374151;">This is a reminder that your HispanUSA appointment is in <strong>${daysLabel}</strong>:</p>
          ${apptInfoBlock(dateDisplay, timeDisplay)}
-         <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a>.</p>
+         <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> or book online at ${BOOKING_LINK_HTML}.</p>
          <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
   }
 

@@ -112,6 +112,14 @@ export function slotsForType(appointmentType: string): 1 | 2 | 3 {
   return 1;
 }
 
+// True iff this appointment type includes a corporate return — the types that
+// carry a company_name. Same centralization rule as slotsForType: every surface
+// (wizard, staff modal, API validation, detail displays) checks through here,
+// never a local type === 'corporate_tax' comparison that misses the combined type.
+export function includesCorporate(appointmentType: string): boolean {
+  return appointmentType === 'corporate_tax' || appointmentType === 'personal_corporate_tax';
+}
+
 // The consecutive 30-min slot start times this appointment type occupies,
 // beginning at startTime (HH:MM or HH:MM:SS). Length === slotsForType(type).
 export function slotStartTimesFor(startTime: string, appointmentType: string): string[] {

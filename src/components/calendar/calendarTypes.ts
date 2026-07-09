@@ -15,6 +15,7 @@ export interface CalendarAppt {
   client_name: string;
   client_phone: string;
   client_email: string | null;
+  company_name: string | null; // corporate types only; nullable (staff may skip)
   appointment_type: 'personal_tax' | 'corporate_tax' | 'personal_corporate_tax' | 'professional_services';
   service_subtype: string | null;
   date: string;        // YYYY-MM-DD

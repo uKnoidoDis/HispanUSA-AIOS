@@ -68,9 +68,20 @@ export async function middleware(request: NextRequest) {
           response = NextResponse.next({
             request: { headers: request.headers },
           });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          // SESSION-COOKIE POLICY (keep in sync with src/lib/supabase/client.ts):
+          // strip Max-Age/Expires on sets so the refreshed auth cookie stays a
+          // browser-session cookie — @supabase/ssr force-sets a ~400-day Max-Age
+          // here, and this refresh path would otherwise re-persist the cookie
+          // and undo the client-side policy. Deletions (maxAge <= 0) keep their
+          // Max-Age so sign-out still clears the cookie.
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const isDeletion =
+              typeof options?.maxAge === 'number' && options.maxAge <= 0;
+            const sessionOptions = isDeletion
+              ? options
+              : { ...options, maxAge: undefined, expires: undefined };
+            response.cookies.set(name, value, sessionOptions);
+          });
         },
       },
     }

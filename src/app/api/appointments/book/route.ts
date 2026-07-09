@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
-import { addThirtyMinutes, slotStartTimesFor, endTimeFor } from '@/lib/availability-utils';
+import { addThirtyMinutes, slotStartTimesFor, endTimeFor, includesCorporate } from '@/lib/availability-utils';
 import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
@@ -16,6 +16,7 @@ const bookSchema = z.object({
   client_name:      z.string().min(2, 'Full name required'),
   client_phone:     z.string().min(10, 'Valid US phone required'),
   client_email:     z.string().email('Invalid email').optional().nullable(),
+  company_name:     z.string().trim().max(200).optional().nullable(),
   appointment_type: z.enum(['personal_tax', 'corporate_tax', 'personal_corporate_tax', 'professional_services']),
   service_subtype:  z.enum([
     'immigration_consulting', 'immigration_case',
@@ -36,6 +37,11 @@ const bookSchema = z.object({
   // When the client picks "Other", they must describe their need (free text).
   data => data.service_subtype !== 'other' || !!data.service_subtype_other?.trim(),
   { message: 'service_subtype_other is required when service_subtype is other' }
+).refine(
+  // Corporate returns are filed for a company — the client portal must say which.
+  // (Staff bookings via /api/appointments deliberately do NOT enforce this.)
+  data => !includesCorporate(data.appointment_type) || !!data.company_name?.trim(),
+  { message: 'company_name is required for corporate appointment types' }
 );
 
 // Extracts the client IP from proxy headers. Never trusts a client-supplied
@@ -214,6 +220,9 @@ export async function POST(request: NextRequest) {
       client_name:          input.client_name.trim(),
       client_phone:         phone,
       client_email:         input.client_email ?? null,
+      company_name:         includesCorporate(input.appointment_type)
+        ? (input.company_name?.trim() || null)
+        : null,
       appointment_type:     input.appointment_type,
       service_subtype:      input.service_subtype ?? null,
       service_subtype_other: input.service_subtype === 'other'
