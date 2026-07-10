@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { addThirtyMinutes } from '@/lib/availability-utils';
+import { isBookableEastern } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // GET /api/availability?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD[&preparer_id=uuid]
@@ -111,35 +112,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = createServerClient();
-
-  // Check which times already exist so we can skip them
-  const { data: existing } = await supabase
-    .from('availability_slots')
-    .select('start_time')
-    .eq('preparer_id', preparer_id)
-    .eq('date', date)
-    .in('start_time', start_times);
-
-  const existingTimes = new Set((existing ?? []).map(e => e.start_time));
-
-  const newSlots = start_times
-    .filter(st => !existingTimes.has(st))
-    .map(st => ({
-      preparer_id,
-      date,
-      start_time: st,
-      end_time: addThirtyMinutes(st),
-      is_booked: false,
-    }));
-
-  if (newSlots.length === 0) {
-    return NextResponse.json({ created: 0, slots: [], message: 'All slots already exist' });
+  // Write-time past guard: opening a slot whose start has already passed
+  // (15-min buffer, Eastern) is rejected — the read path hides past slots,
+  // and now the write path can't create them either.
+  const futureTimes = start_times.filter(st => isBookableEastern(date, st));
+  if (futureTimes.length === 0) {
+    return NextResponse.json(
+      { error: 'That time has already passed' },
+      { status: 400 }
+    );
   }
 
+  const supabase = createServerClient();
+
+  const newSlots = futureTimes.map(st => ({
+    preparer_id,
+    date,
+    start_time: st,
+    end_time: addThirtyMinutes(st),
+    is_booked: false,
+  }));
+
+  // Duplicates are ignored via uniq_slot_preparer_date_start (migration 012),
+  // replacing the old SELECT-then-INSERT dedup; .select() returns only rows
+  // actually inserted.
   const { data, error } = await supabase
     .from('availability_slots')
-    .insert(newSlots)
+    .upsert(newSlots, { onConflict: 'preparer_id,date,start_time', ignoreDuplicates: true })
     .select('id, preparer_id, date, start_time, end_time, is_booked, created_at');
 
   if (error) {

@@ -26,6 +26,31 @@ export function getWeekDays(weekStart: Date, includeSaturday: boolean): Date[] {
   return Array.from({ length: count }, (_, i) => addDays(weekStart, i));
 }
 
+// A day availability can be opened on: Mon–Fri always, Saturday only inside
+// tax season — evaluated per-DATE (not per-now) so week/month ranges spanning
+// the Jan 15 / Apr 15 boundaries include exactly the right Saturdays.
+export function isBusinessDay(date: Date): boolean {
+  const dow = date.getDay(); // 0 = Sun, 6 = Sat
+  if (dow === 0) return false;
+  if (dow === 6) return isTaxSeason(date);
+  return true;
+}
+
+// All openable business days of the calendar month containing `anchor`.
+// Used by the Availability tab's month-scope bulk open ("month" = the calendar
+// month of the displayed week's start).
+export function getMonthBusinessDays(anchor: Date): Date[] {
+  const year = anchor.getFullYear();
+  const month = anchor.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const out: Date[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = new Date(year, month, d);
+    if (isBusinessDay(day)) out.push(day);
+  }
+  return out;
+}
+
 // -----------------------------------------------------------------------
 // Time slot generation
 // Generates 30-min start times from startHour (inclusive) up to endHour (exclusive).
@@ -58,11 +83,14 @@ export const PRESET_RANGES: Record<SlotPreset, [number, number]> = {
   full_day_tax: [9, 19],   // 9:00 AM – 7:00 PM   (20 slots)
 };
 
+// Labels name the TIME WINDOW only — the week/month scope lives in the
+// Availability tab's scope toggle. (Old labels read as day actions while the
+// buttons actually wrote the whole week — Ruth feedback #1a.)
 export const PRESET_LABELS: Record<SlotPreset, string> = {
-  morning:      'Open Morning',
-  afternoon:    'Open Afternoon',
-  full_day:     'Open Full Day',
-  full_day_tax: 'Open Full Day (Tax Season)',
+  morning:      'Open Mornings (9–12)',
+  afternoon:    'Open Afternoons (12–5)',
+  full_day:     'Open Full Days (9–5)',
+  full_day_tax: 'Open Extended Days (9–7)',
 };
 
 export function getPresetStartTimes(preset: SlotPreset): string[] {

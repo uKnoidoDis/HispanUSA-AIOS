@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { addDays, format, parseISO } from 'date-fns';
+import { isBookableEastern } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // POST /api/availability/copy-week
@@ -33,14 +34,8 @@ export async function POST(request: NextRequest) {
   const sourceStart = parseISO(source_week_start);
   const sourceEnd = addDays(sourceStart, 5); // Saturday
 
-  // Target: Mon–Sat of next week
-  const targetStart = addDays(sourceStart, 7);
-  const targetEnd = addDays(targetStart, 5);
-
   const sourceStartStr = format(sourceStart, 'yyyy-MM-dd');
   const sourceEndStr = format(sourceEnd, 'yyyy-MM-dd');
-  const targetStartStr = format(targetStart, 'yyyy-MM-dd');
-  const targetEndStr = format(targetEnd, 'yyyy-MM-dd');
 
   // Fetch unbooked slots from source week
   const { data: sourceSlots, error: sourceError } = await supabase
@@ -63,41 +58,31 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Build the target slots (same time, +7 days)
-  const targetSlots = sourceSlots.map(slot => ({
-    preparer_id,
-    date: format(addDays(parseISO(slot.date), 7), 'yyyy-MM-dd'),
-    start_time: slot.start_time,
-    end_time: slot.end_time,
-    is_booked: false,
-  }));
-
-  // Check for already-existing slots in the target week to avoid duplicates
-  const { data: existingTarget } = await supabase
-    .from('availability_slots')
-    .select('date, start_time')
-    .eq('preparer_id', preparer_id)
-    .gte('date', targetStartStr)
-    .lte('date', targetEndStr);
-
-  const existingKeys = new Set(
-    (existingTarget ?? []).map(s => `${s.date}_${s.start_time}`)
-  );
-
-  const newSlots = targetSlots.filter(
-    s => !existingKeys.has(`${s.date}_${s.start_time}`)
-  );
+  // Build the target slots (same time, +7 days). Write-time past guard: only
+  // bites when copying FROM a past week — targets that already passed (15-min
+  // buffer, Eastern) are silently skipped, same rule as every other writer.
+  const newSlots = sourceSlots
+    .map(slot => ({
+      preparer_id,
+      date: format(addDays(parseISO(slot.date), 7), 'yyyy-MM-dd'),
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      is_booked: false,
+    }))
+    .filter(s => isBookableEastern(s.date, s.start_time));
 
   if (newSlots.length === 0) {
     return NextResponse.json({
       created: 0,
-      message: 'All target slots already exist',
+      message: 'No future target slots to copy',
     });
   }
 
+  // Duplicates ignored via uniq_slot_preparer_date_start (migration 012) —
+  // replaces the old existing-target SELECT; .select() returns inserted only.
   const { data, error } = await supabase
     .from('availability_slots')
-    .insert(newSlots)
+    .upsert(newSlots, { onConflict: 'preparer_id,date,start_time', ignoreDuplicates: true })
     .select('id');
 
   if (error) {
