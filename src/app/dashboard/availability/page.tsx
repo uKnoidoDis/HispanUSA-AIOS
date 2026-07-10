@@ -788,29 +788,31 @@ export default function AvailabilityPage() {
                 )}
                 Clear Day
               </button>
-            </div>
 
-            {/* Clear Week button — sits beside Clear Day (one destructive cluster) */}
-            <button
-              onClick={handleClearWeek}
-              disabled={isAnyBulkBusy}
-              className="
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                text-red-600 border border-red-200 bg-red-50
-                hover:bg-red-100 hover:border-red-300 transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
-              "
-            >
-              {isClearWeekLoading ? (
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              ) : (
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              )}
-              Clear Week
-            </button>
+              {/* Clear Week — inside the same group as Clear Day so the two
+                  destructive buttons wrap as ONE unit and can never be split
+                  onto different lines by flex-wrap. */}
+              <button
+                onClick={handleClearWeek}
+                disabled={isAnyBulkBusy}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                  text-red-600 border border-red-200 bg-red-50
+                  hover:bg-red-100 hover:border-red-300 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
+                "
+              >
+                {isClearWeekLoading ? (
+                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+                Clear Week
+              </button>
+            </div>
 
             {/* Color legend for selected preparer */}
             <div className="ml-auto flex items-center gap-4 text-xs text-gray-500 select-none">
