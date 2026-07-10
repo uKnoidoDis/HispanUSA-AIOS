@@ -660,9 +660,7 @@ export default function AvailabilityPage() {
       {/* ── Action bar (bulk + copy) ─────────────────────────────────── */}
       {selectedPreparer && (
         <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex-shrink-0">
-          <div className="max-w-[1280px] mx-auto flex flex-col gap-2">
-            {/* Row 1: scope toggle + Open presets */}
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-2">
             {/* Open-scope toggle — presets act on the week or its calendar month */}
             <div
               className="flex items-center rounded-md border border-gray-300 overflow-hidden"
@@ -715,10 +713,10 @@ export default function AvailabilityPage() {
                 </button>
               )
             )}
-            </div>
 
-            {/* Row 2: Copy Week + destructive actions (Clear Day, Clear Week) + legend */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Divider */}
+            <div className="h-5 w-px bg-gray-200 mx-1" />
+
             {/* Copy week button */}
             <button
               onClick={handleCopyWeek}
@@ -792,10 +790,7 @@ export default function AvailabilityPage() {
               </button>
             </div>
 
-            {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
-
-            {/* Clear Week button — clears the entire visible week */}
+            {/* Clear Week button — sits beside Clear Day (one destructive cluster) */}
             <button
               onClick={handleClearWeek}
               disabled={isAnyBulkBusy}
@@ -834,7 +829,6 @@ export default function AvailabilityPage() {
                 <span className="h-3 w-3 rounded-sm inline-block bg-white border border-gray-200" />
                 Empty
               </span>
-            </div>
             </div>
           </div>
         </div>
