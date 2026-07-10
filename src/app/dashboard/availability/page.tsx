@@ -7,13 +7,15 @@ import ToastContainer, { type ToastItem, type ToastType } from '@/components/ui/
 import {
   isTaxSeason,
   getWeekStart,
-  getWeekDays,
   generateTimeSlots,
   slotKey,
   addThirtyMinutes,
   formatWeekLabel,
   PRESET_LABELS,
+  isBusinessDay,
+  getMonthBusinessDays,
 } from '@/lib/availability-utils';
+import { isBookableEastern } from '@/lib/utils';
 import type { Preparer, SlotWithMeta, SlotPreset } from '@/types/scheduling';
 
 // -----------------------------------------------------------------------
@@ -181,6 +183,9 @@ export default function AvailabilityPage() {
   // ── Toast state ───────────────────────────────────────────────────────
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // ── Open-scope: presets act on the displayed week or its calendar month ──
+  const [openScope, setOpenScope] = useState<'week' | 'month'>('week');
+
   // ── Derived grid config ────────────────────────────────────────────────
   const taxSeason = useMemo(() => isTaxSeason(), []);
   // Display: always the full Mon–Sun week (matches the Calendar tab).
@@ -188,11 +193,20 @@ export default function AvailabilityPage() {
     () => Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
     [currentWeekStart]
   );
-  // Bulk Open presets keep their original target days (Mon–Fri off-season,
-  // Mon–Sat in tax season) so those buttons behave exactly as before.
+  // Bulk Open target days. Saturday inclusion is evaluated per-DATE (tax
+  // season of that date), so ranges spanning Jan 15 / Apr 15 include exactly
+  // the right Saturdays. Week scope = business days of the displayed week;
+  // month scope = business days of the calendar month the week starts in.
   const bulkDays = useMemo(
-    () => getWeekDays(currentWeekStart, taxSeason),
-    [currentWeekStart, taxSeason]
+    () =>
+      openScope === 'week'
+        ? weekDays.filter(isBusinessDay)
+        : getMonthBusinessDays(currentWeekStart),
+    [openScope, weekDays, currentWeekStart]
+  );
+  const monthLabel = useMemo(
+    () => format(currentWeekStart, 'MMMM'),
+    [currentWeekStart]
   );
   // Display range: 5:00 AM – 10:00 PM (matches the Calendar tab).
   const timeSlots = useMemo(() => generateTimeSlots(5, 22), []);
@@ -262,6 +276,10 @@ export default function AvailabilityPage() {
 
       if (slot === null) {
         // ── Open slot (optimistic) ────────────────────────────────────
+        // Write-time past guard (UI mirror of the API 400): can't open a slot
+        // whose start already passed. Closing past OPEN slots stays allowed —
+        // that's cleanup, same as clear-day.
+        if (!isBookableEastern(date, startTime)) return;
         const tempId = `temp_${key}`;
         const optimistic: SlotWithMeta = {
           id: tempId,
@@ -345,53 +363,64 @@ export default function AvailabilityPage() {
     [selectedPreparer, showToast]
   );
 
-  // ── Bulk open slots ───────────────────────────────────────────────────
+  // ── Bulk open slots — ONE request per open, week or month scope ────────
   const handleBulkAction = useCallback(
     async (preset: SlotPreset) => {
       if (!selectedPreparer || isBulkLoading) return;
       setIsBulkLoading(true);
 
-      let totalCreated = 0;
-      let anyError = false;
-
-      // Fire one bulk request per business day (sequential to avoid DB contention).
-      // Uses bulkDays (Mon–Fri / Mon–Sat) so presets keep their original behavior
-      // even though the grid now displays the full Mon–Sun week.
-      for (const day of bulkDays) {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        const res = await fetch('/api/availability/bulk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            preparer_id: selectedPreparer.id,
-            date: dateStr,
-            preset,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          totalCreated += data.created ?? 0;
-        } else {
-          anyError = true;
-        }
-      }
+      const dates = bulkDays.map(day => format(day, 'yyyy-MM-dd'));
+      const res = await fetch('/api/availability/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preparer_id: selectedPreparer.id,
+          dates,
+          preset,
+        }),
+      });
 
       setIsBulkLoading(false);
+
+      if (!res.ok) {
+        showToast('Failed to open slots', 'error');
+        return;
+      }
+
+      const data: {
+        created?: number;
+        skipped?: { pastDays?: string[]; pastSlotsToday?: number };
+      } = await res.json();
       await fetchSlots();
 
-      if (anyError) {
-        showToast('Some slots could not be created', 'error');
-      } else if (totalCreated === 0) {
-        showToast('All slots already exist for this week', 'info');
-      } else {
+      const created = data.created ?? 0;
+      const pastDays = data.skipped?.pastDays ?? [];
+      const pastToday = data.skipped?.pastSlotsToday ?? 0;
+
+      // Toast says what was opened AND what was skipped, so a partial open
+      // never reads as "fewer slots than expected" without explanation.
+      const skippedParts: string[] = [];
+      if (pastDays.length > 0) {
+        skippedParts.push(`${pastDays.length} past day${pastDays.length === 1 ? '' : 's'}`);
+      }
+      if (pastToday > 0) {
+        skippedParts.push(`${pastToday} earlier slot${pastToday === 1 ? '' : 's'} today`);
+      }
+      const skippedNote = skippedParts.length > 0 ? ` · skipped ${skippedParts.join(' and ')}` : '';
+      const scopeNote = openScope === 'month' ? ` for ${monthLabel}` : ' this week';
+
+      if (created === 0) {
         showToast(
-          `Opened ${totalCreated} slot${totalCreated === 1 ? '' : 's'}`,
-          'success'
+          skippedParts.length > 0 && pastDays.length === dates.length
+            ? `Nothing to open${scopeNote} — all requested days are past`
+            : `Nothing new to open${scopeNote} — slots already exist${skippedNote}`,
+          'info'
         );
+      } else {
+        showToast(`Opened ${created} slot${created === 1 ? '' : 's'}${scopeNote}${skippedNote}`, 'success');
       }
     },
-    [selectedPreparer, isBulkLoading, bulkDays, fetchSlots, showToast]
+    [selectedPreparer, isBulkLoading, bulkDays, openScope, monthLabel, fetchSlots, showToast]
   );
 
   // ── Copy week ─────────────────────────────────────────────────────────
@@ -631,7 +660,33 @@ export default function AvailabilityPage() {
       {/* ── Action bar (bulk + copy) ─────────────────────────────────── */}
       {selectedPreparer && (
         <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex-shrink-0">
-          <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-2">
+          <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-1.5">
+            {/* Open-scope toggle — presets act on the week or its calendar month */}
+            <div
+              className="flex items-center rounded-md border border-gray-300 overflow-hidden"
+              role="group"
+              aria-label="Open scope"
+            >
+              {(['week', 'month'] as const).map(scope => (
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => setOpenScope(scope)}
+                  disabled={isAnyBulkBusy}
+                  className={`px-2 py-1.5 text-xs whitespace-nowrap font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A] disabled:opacity-50 disabled:cursor-not-allowed ${
+                    openScope === scope
+                      ? 'bg-[#03296A] text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {scope === 'week' ? 'This Week' : monthLabel}
+                </button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-gray-200 mx-0.5" />
+
             {/* Bulk preset buttons */}
             {(Object.entries(PRESET_LABELS) as [SlotPreset, string][]).map(
               ([preset, label]) => (
@@ -639,8 +694,9 @@ export default function AvailabilityPage() {
                   key={preset}
                   onClick={() => handleBulkAction(preset)}
                   disabled={isAnyBulkBusy}
+                  title={preset === 'full_day_tax' ? 'Tax-season hours (9 AM – 7 PM)' : undefined}
                   className="
-                    px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300
+                    px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md border border-gray-300
                     text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400
                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]
@@ -659,14 +715,14 @@ export default function AvailabilityPage() {
             )}
 
             {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
+            <div className="h-5 w-px bg-gray-200 mx-0.5" />
 
             {/* Copy week button */}
             <button
               onClick={handleCopyWeek}
               disabled={isAnyBulkBusy}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                flex items-center gap-1.5 px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md
                 text-[#03296A] border border-[#03296A]/40 bg-[#EDF2F8]
                 hover:bg-[#244B75]/10 transition-colors
                 disabled:opacity-50 disabled:cursor-not-allowed
@@ -682,7 +738,7 @@ export default function AvailabilityPage() {
             </button>
 
             {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
+            <div className="h-5 w-px bg-gray-200 mx-0.5" />
 
             {/* Clear Day dropdown + button */}
             <div className="flex items-center gap-1.5">
@@ -690,7 +746,7 @@ export default function AvailabilityPage() {
                 id="clear-day-select"
                 defaultValue=""
                 className="
-                  appearance-none px-2.5 py-1.5 text-xs font-medium border border-red-200
+                  appearance-none px-2 py-1.5 text-xs font-medium border border-red-200
                   rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2
                   focus:ring-red-400 focus:border-red-400 cursor-pointer
                   transition-colors hover:border-red-300
@@ -716,7 +772,7 @@ export default function AvailabilityPage() {
                 }}
                 disabled={isAnyBulkBusy}
                 className="
-                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                  flex items-center gap-1.5 px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md
                   text-red-600 border border-red-200 bg-red-50
                   hover:bg-red-100 hover:border-red-300 transition-colors
                   disabled:opacity-50 disabled:cursor-not-allowed
@@ -732,35 +788,34 @@ export default function AvailabilityPage() {
                 )}
                 Clear Day
               </button>
+
+              {/* Clear Week — inside the same group as Clear Day so the two
+                  destructive buttons wrap as ONE unit and can never be split
+                  onto different lines by flex-wrap. */}
+              <button
+                onClick={handleClearWeek}
+                disabled={isAnyBulkBusy}
+                className="
+                  flex items-center gap-1.5 px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md
+                  text-red-600 border border-red-200 bg-red-50
+                  hover:bg-red-100 hover:border-red-300 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
+                "
+              >
+                {isClearWeekLoading ? (
+                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+                Clear Week
+              </button>
             </div>
 
-            {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
-
-            {/* Clear Week button — clears the entire visible week */}
-            <button
-              onClick={handleClearWeek}
-              disabled={isAnyBulkBusy}
-              className="
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                text-red-600 border border-red-200 bg-red-50
-                hover:bg-red-100 hover:border-red-300 transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
-              "
-            >
-              {isClearWeekLoading ? (
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              ) : (
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              )}
-              Clear Week
-            </button>
-
             {/* Color legend for selected preparer */}
-            <div className="ml-auto flex items-center gap-4 text-xs text-gray-500 select-none">
+            <div className="ml-auto flex items-center gap-2.5 text-xs text-gray-500 select-none">
               <span className="flex items-center gap-1.5">
                 <span
                   className="h-3 w-3 rounded-sm inline-block border border-black/10"

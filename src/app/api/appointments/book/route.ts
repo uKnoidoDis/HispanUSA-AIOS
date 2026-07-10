@@ -167,6 +167,20 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Book the slots (mark as held while pending) ────────────────────────────
+  // Frees slots already claimed by THIS request when a later step conflicts —
+  // safe because the checks below ensured they weren't held by anyone else.
+  const freeClaimedSlots = async (upTo: string[]) => {
+    for (const claimed of upTo) {
+      await supabase
+        .from('availability_slots')
+        .update({ is_booked: false })
+        .eq('preparer_id', assignedPreparerId)
+        .eq('date', input.date)
+        .eq('start_time', claimed);
+    }
+  };
+  const claimedStarts: string[] = [];
+
   for (const slotStart of slotStartTimes) {
     const { data: existingSlot } = await supabase
       .from('availability_slots')
@@ -179,6 +193,7 @@ export async function POST(request: NextRequest) {
     if (existingSlot) {
       // Double-check it's still free (race condition guard)
       if (existingSlot.is_booked) {
+        await freeClaimedSlots(claimedStarts);
         return NextResponse.json(
           { error: 'This time slot was just taken. Please select another time.' },
           { status: 409 }
@@ -189,8 +204,10 @@ export async function POST(request: NextRequest) {
         .update({ is_booked: true })
         .eq('id', existingSlot.id);
     } else {
-      // Slot doesn't exist — create override
-      await supabase
+      // Slot doesn't exist — create override. Under migration 012's unique
+      // constraint a lost race here surfaces as 23505 instead of a silent
+      // duplicate — treat it exactly like the is_booked race above.
+      const { error: overrideErr } = await supabase
         .from('availability_slots')
         .insert({
           preparer_id: assignedPreparerId,
@@ -199,7 +216,18 @@ export async function POST(request: NextRequest) {
           end_time: addThirtyMinutes(slotStart),
           is_booked: true,
         });
+      if (overrideErr) {
+        await freeClaimedSlots(claimedStarts);
+        if (overrideErr.code === '23505') {
+          return NextResponse.json(
+            { error: 'This time slot was just taken. Please select another time.' },
+            { status: 409 }
+          );
+        }
+        return NextResponse.json({ error: overrideErr.message }, { status: 500 });
+      }
     }
+    claimedStarts.push(slotStart);
   }
 
   // auto_send_checklist: true for tax types, false for professional_services
