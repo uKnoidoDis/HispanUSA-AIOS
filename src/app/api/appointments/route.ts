@@ -130,13 +130,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Frees this request's target slots — rolls back partial work so a failed
-  // booking never leaves orphaned is_booked=true slots with no appointment
-  // behind them (the client book route's proven rollback pattern). Safe to
-  // apply blindly: the occupancy guard above ensured none of these slots were
-  // held by another appointment.
+  // Frees target slots this request has CLAIMED so far — rolls back partial
+  // work so a failed booking never leaves orphaned is_booked=true slots with
+  // no appointment behind them (the client book route's proven rollback
+  // pattern). Scoped to claimed slots only: under migration 012's unique
+  // constraint a create-race loser must NOT free the slot the winning request
+  // just claimed, so the old free-all-targets version is no longer safe.
+  const claimedStarts: string[] = [];
   const rollbackSlots = async () => {
-    for (const slotStart of slotStartTimes) {
+    for (const slotStart of claimedStarts) {
       await supabase
         .from('availability_slots')
         .update({ is_booked: false })
@@ -179,9 +181,18 @@ export async function POST(request: NextRequest) {
         });
       if (error) {
         await rollbackSlots();
+        // Under migration 012's unique constraint, a lost create-race surfaces
+        // as 23505 — that's an occupancy conflict, not a server error.
+        if (error.code === '23505') {
+          return NextResponse.json(
+            { error: 'That time is already booked for this preparer. Please choose another time.' },
+            { status: 409 }
+          );
+        }
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
     }
+    claimedStarts.push(slotStart);
   }
 
   // Step 3: Create appointment — status = confirmed immediately (staff booking)

@@ -4,6 +4,7 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import type { Preparer, SlotWithMeta } from '@/types/scheduling';
 import { formatTimeDisplay, slotKey, addThirtyMinutes } from '@/lib/availability-utils';
+import { isBookableEastern, easternDateString } from '@/lib/utils';
 
 // -----------------------------------------------------------------------
 // Lock icon (inline — no external icon library)
@@ -73,7 +74,9 @@ export default function AvailabilityGrid({
   loadingCells,
   onCellClick,
 }: AvailabilityGridProps) {
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  // Eastern "today" — Applied Learning #21: never derive today from local/UTC
+  // now (evening drift); easternDateString() is the canonical rule.
+  const todayStr = easternDateString();
   const colCount = weekDays.length;
 
   // Time column is 72px; each day column splits the remaining space equally
@@ -206,6 +209,7 @@ export default function AvailabilityGrid({
                     slot={slot}
                     isLoading={isLoading}
                     isToday={isToday}
+                    isPast={!isBookableEastern(dateStr, startTime)}
                     isHourBoundary={isHourBoundary}
                     preparerColor="#03296A"
                     run={slot && !slot.is_booked ? runInfo.get(key) ?? null : null}
@@ -229,6 +233,7 @@ interface SlotCellProps {
   slot: SlotWithMeta | null;
   isLoading: boolean;
   isToday: boolean;
+  isPast: boolean;          // slot start already passed (15-min buffer, Eastern)
   isHourBoundary: boolean;
   preparerColor: string;    // preparer's hex color
   run: RunInfo | null;      // run membership for open slots (visual merge)
@@ -239,6 +244,7 @@ function SlotCell({
   slot,
   isLoading,
   isToday,
+  isPast,
   isHourBoundary,
   preparerColor,
   run,
@@ -308,6 +314,22 @@ function SlotCell({
           )
         )}
       </button>
+    );
+  }
+
+  // ── EMPTY + PAST: dimmed, not clickable — availability can't be created
+  // for a time that already passed (write-time guard, UI mirror of the API
+  // 400). Past OPEN slots above stay clickable: closing them is cleanup.
+  if (isPast) {
+    return (
+      <div
+        className={`
+          h-10 border-r border-gray-100 last:border-r-0 ${hBorder}
+          bg-gray-50 cursor-not-allowed
+        `}
+        title="This time has passed"
+        aria-disabled="true"
+      />
     );
   }
 

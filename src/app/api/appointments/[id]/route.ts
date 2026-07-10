@@ -162,7 +162,10 @@ export async function PATCH(
       }
 
       // 3. Book NEW slots (mark existing, or override-create — staff power,
-      //    same as reassign and staff booking).
+      //    same as reassign and staff booking). Under migration 012's unique
+      //    constraint a lost create-race surfaces as 23505 — roll back only the
+      //    NEW slots THIS request claimed (never the winner's), restore OLD.
+      const claimedNew: string[] = [];
       for (const slotStart of newStarts) {
         const { data: existingSlot } = await supabase
           .from('availability_slots')
@@ -178,7 +181,7 @@ export async function PATCH(
             .update({ is_booked: true })
             .eq('id', existingSlot.id);
         } else {
-          await supabase
+          const { error: overrideErr } = await supabase
             .from('availability_slots')
             .insert({
               preparer_id: newPreparerId,
@@ -187,7 +190,19 @@ export async function PATCH(
               end_time: addThirtyMinutes(slotStart),
               is_booked: true,
             });
+          if (overrideErr) {
+            await setBooked(newPreparerId, newDate, claimedNew, false);
+            await setBooked(oldPreparerId, oldDate, oldStarts, true);
+            if (overrideErr.code === '23505') {
+              return NextResponse.json(
+                { error: 'The new time is already booked for that preparer. Please choose another time.' },
+                { status: 409 }
+              );
+            }
+            return NextResponse.json({ error: overrideErr.message }, { status: 500 });
+          }
         }
+        claimedNew.push(slotStart);
       }
 
       // 4. Update the appointment to the new coords (+ any other fields sent).
@@ -300,7 +315,10 @@ export async function PATCH(
       }
     }
 
-    // 2b. Book new preparer's slots (create override if no slot exists)
+    // 2b. Book new preparer's slots (create override if no slot exists).
+    // 23505 = lost create-race under migration 012 — free only the slots THIS
+    // reassign claimed, restore the old preparer's, and 409.
+    const claimedReassign: string[] = [];
     for (const slotStart of slotStartTimes) {
       const { data: existingSlot } = await supabase
         .from('availability_slots')
@@ -316,7 +334,7 @@ export async function PATCH(
           .update({ is_booked: true })
           .eq('id', existingSlot.id);
       } else {
-        await supabase
+        const { error: overrideErr } = await supabase
           .from('availability_slots')
           .insert({
             preparer_id: newPreparerId,
@@ -325,7 +343,33 @@ export async function PATCH(
             end_time: addThirtyMinutes(slotStart),
             is_booked: true,
           });
+        if (overrideErr) {
+          for (const freeStart of claimedReassign) {
+            await supabase
+              .from('availability_slots')
+              .update({ is_booked: false })
+              .eq('preparer_id', newPreparerId)
+              .eq('date', date)
+              .eq('start_time', freeStart);
+          }
+          for (const restoreStart of slotStartTimes) {
+            await supabase
+              .from('availability_slots')
+              .update({ is_booked: true })
+              .eq('preparer_id', oldPreparerId)
+              .eq('date', date)
+              .eq('start_time', restoreStart);
+          }
+          if (overrideErr.code === '23505') {
+            return NextResponse.json(
+              { error: 'That preparer is already booked at this time. Please choose another preparer or reschedule.' },
+              { status: 409 }
+            );
+          }
+          return NextResponse.json({ error: overrideErr.message }, { status: 500 });
+        }
       }
+      claimedReassign.push(slotStart);
     }
   }
 
