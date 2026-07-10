@@ -660,7 +660,7 @@ export default function AvailabilityPage() {
       {/* ── Action bar (bulk + copy) ─────────────────────────────────── */}
       {selectedPreparer && (
         <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex-shrink-0">
-          <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-2">
+          <div className="max-w-[1280px] mx-auto flex flex-wrap items-center gap-1.5">
             {/* Open-scope toggle — presets act on the week or its calendar month */}
             <div
               className="flex items-center rounded-md border border-gray-300 overflow-hidden"
@@ -673,7 +673,7 @@ export default function AvailabilityPage() {
                   type="button"
                   onClick={() => setOpenScope(scope)}
                   disabled={isAnyBulkBusy}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A] disabled:opacity-50 disabled:cursor-not-allowed ${
+                  className={`px-2 py-1.5 text-xs whitespace-nowrap font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A] disabled:opacity-50 disabled:cursor-not-allowed ${
                     openScope === scope
                       ? 'bg-[#03296A] text-white'
                       : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -685,7 +685,7 @@ export default function AvailabilityPage() {
             </div>
 
             {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
+            <div className="h-5 w-px bg-gray-200 mx-0.5" />
 
             {/* Bulk preset buttons */}
             {(Object.entries(PRESET_LABELS) as [SlotPreset, string][]).map(
@@ -696,7 +696,7 @@ export default function AvailabilityPage() {
                   disabled={isAnyBulkBusy}
                   title={preset === 'full_day_tax' ? 'Tax-season hours (9 AM – 7 PM)' : undefined}
                   className="
-                    px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300
+                    px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md border border-gray-300
                     text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400
                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-[#03296A]
@@ -715,14 +715,14 @@ export default function AvailabilityPage() {
             )}
 
             {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
+            <div className="h-5 w-px bg-gray-200 mx-0.5" />
 
             {/* Copy week button */}
             <button
               onClick={handleCopyWeek}
               disabled={isAnyBulkBusy}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                flex items-center gap-1.5 px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md
                 text-[#03296A] border border-[#03296A]/40 bg-[#EDF2F8]
                 hover:bg-[#244B75]/10 transition-colors
                 disabled:opacity-50 disabled:cursor-not-allowed
@@ -738,7 +738,7 @@ export default function AvailabilityPage() {
             </button>
 
             {/* Divider */}
-            <div className="h-5 w-px bg-gray-200 mx-1" />
+            <div className="h-5 w-px bg-gray-200 mx-0.5" />
 
             {/* Clear Day dropdown + button */}
             <div className="flex items-center gap-1.5">
@@ -746,7 +746,7 @@ export default function AvailabilityPage() {
                 id="clear-day-select"
                 defaultValue=""
                 className="
-                  appearance-none px-2.5 py-1.5 text-xs font-medium border border-red-200
+                  appearance-none px-2 py-1.5 text-xs font-medium border border-red-200
                   rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2
                   focus:ring-red-400 focus:border-red-400 cursor-pointer
                   transition-colors hover:border-red-300
@@ -772,7 +772,7 @@ export default function AvailabilityPage() {
                 }}
                 disabled={isAnyBulkBusy}
                 className="
-                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                  flex items-center gap-1.5 px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md
                   text-red-600 border border-red-200 bg-red-50
                   hover:bg-red-100 hover:border-red-300 transition-colors
                   disabled:opacity-50 disabled:cursor-not-allowed
@@ -796,7 +796,7 @@ export default function AvailabilityPage() {
                 onClick={handleClearWeek}
                 disabled={isAnyBulkBusy}
                 className="
-                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                  flex items-center gap-1.5 px-2 py-1.5 text-xs whitespace-nowrap font-medium rounded-md
                   text-red-600 border border-red-200 bg-red-50
                   hover:bg-red-100 hover:border-red-300 transition-colors
                   disabled:opacity-50 disabled:cursor-not-allowed
@@ -815,7 +815,7 @@ export default function AvailabilityPage() {
             </div>
 
             {/* Color legend for selected preparer */}
-            <div className="ml-auto flex items-center gap-4 text-xs text-gray-500 select-none">
+            <div className="ml-auto flex items-center gap-2.5 text-xs text-gray-500 select-none">
               <span className="flex items-center gap-1.5">
                 <span
                   className="h-3 w-3 rounded-sm inline-block border border-black/10"
