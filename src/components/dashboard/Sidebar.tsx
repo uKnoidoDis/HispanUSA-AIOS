@@ -10,7 +10,6 @@ import {
   Calendar,
   ClipboardList,
   Clock,
-  Users,
   LogOut,
   Hourglass,
   ShieldCheck,
@@ -32,7 +31,6 @@ const primaryNavItems: NavItem[] = [
   { href: '/dashboard/availability', label: 'Availability', icon: Clock },
   { href: '/dashboard/appointments', label: 'Appointments', icon: ClipboardList },
   { href: '/dashboard/pending',      label: 'Pending',      icon: Hourglass, showBadge: true },
-  { href: '/dashboard/clients',      label: 'Clients',      icon: Users },
 ];
 
 const bottomNavItems: NavItem[] = [

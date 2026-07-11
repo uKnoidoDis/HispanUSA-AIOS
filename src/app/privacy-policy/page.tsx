@@ -12,7 +12,7 @@ function EnglishContent() {
     <>
       <h1 className="text-3xl font-bold text-[#03296A] mb-2">PRIVACY POLICY</h1>
       <p className="text-sm text-gray-500 mb-8">
-        Effective Date: May 20, 2026 &middot; Last Updated: May 20, 2026
+        Effective Date: May 20, 2026 &middot; Last Updated: July 11, 2026
       </p>
 
       <p className="mb-4">
@@ -182,8 +182,8 @@ function EnglishContent() {
         <li>Responses to questions you send us by text.</li>
       </ul>
       <p className="mb-4">
-        <strong>Message frequency:</strong> You can expect to receive approximately 1 to 5 messages
-        per appointment cycle. Message frequency varies based on the services you have engaged us to
+        <strong>Message frequency:</strong> You can expect to receive up to 5 messages per
+        appointment cycle. Message frequency varies based on the services you have engaged us to
         provide.
       </p>
       <p className="mb-4">
@@ -400,7 +400,7 @@ function SpanishContent() {
     <>
       <h1 className="text-3xl font-bold text-[#03296A] mb-2">POLÍTICA DE PRIVACIDAD</h1>
       <p className="text-sm text-gray-500 mb-8">
-        Fecha de vigencia: 20 de mayo de 2026 &middot; Última actualización: 20 de mayo de 2026
+        Fecha de vigencia: 20 de mayo de 2026 &middot; Última actualización: 11 de julio de 2026
       </p>
 
       <p className="mb-4">
@@ -591,8 +591,8 @@ function SpanishContent() {
         <li>Respuestas a preguntas que usted nos envíe por mensaje de texto.</li>
       </ul>
       <p className="mb-4">
-        <strong>Frecuencia de mensajes:</strong> Usted puede esperar recibir aproximadamente de 1 a 5
-        mensajes por ciclo de cita. La frecuencia de mensajes varía según los servicios que nos haya
+        <strong>Frecuencia de mensajes:</strong> Usted puede esperar recibir hasta 5 mensajes por
+        ciclo de cita. La frecuencia de mensajes varía según los servicios que nos haya
         contratado.
       </p>
       <p className="mb-4">
