@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { normalizePhone } from '@/lib/utils';
-import { addThirtyMinutes, slotStartTimesFor, endTimeFor, includesCorporate } from '@/lib/availability-utils';
+import { normalizePhone, isPlausibleDob } from '@/lib/utils';
+import { addThirtyMinutes, slotStartTimesFor, endTimeFor, includesCorporate, includesPersonal } from '@/lib/availability-utils';
 import { sendConfirmationMessage, sendChecklistMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
+
+// DOB: shape via regex, validity via isPlausibleDob (real calendar date, not in
+// the future, not more than 120 years past). Shared by spouse + dependents.
+const dobSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'DOB must be YYYY-MM-DD')
+  .refine(isPlausibleDob, { message: 'DOB must be a valid past date within 120 years' });
 
 const createAppointmentSchema = z.object({
   client_name:      z.string().min(1, 'Client name required'),
@@ -27,6 +33,19 @@ const createAppointmentSchema = z.object({
   language:             z.enum(['en', 'es']).default('es'),
   notes:                z.string().optional().nullable(),
   auto_send_checklist:  z.boolean().optional(),
+  // Household (migration 013) — ALL optional for staff (warn-don't-block in the
+  // modal, same doctrine as company_name). Added rows must still be complete.
+  filing_status:        z.enum(['single', 'married_filing_jointly', 'married_filing_separately']).optional().nullable(),
+  spouse:               z.object({
+    name: z.string().trim().min(1).max(200),
+    dob:  dobSchema,
+  }).optional().nullable(),
+  dependents:           z.array(z.object({
+    name:           z.string().trim().min(1).max(200),
+    dob:            dobSchema,
+    relationship:   z.string().trim().max(100).optional().nullable(),
+    filing_with_us: z.boolean().default(false),
+  })).max(10).default([]),
 }).refine(
   data => data.appointment_type !== 'professional_services' || !!data.service_subtype,
   { message: 'service_subtype is required for professional_services' }
@@ -214,6 +233,9 @@ export async function POST(request: NextRequest) {
       service_subtype_other: input.service_subtype === 'other'
         ? (input.service_subtype_other?.trim() || null)
         : null,
+      filing_status:        includesPersonal(input.appointment_type)
+        ? (input.filing_status ?? null)
+        : null,
       date:                 input.date,
       start_time:           startTime,
       end_time:             endTime,
@@ -235,6 +257,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: apptError.message }, { status: 500 });
   }
 
+  // ── Insert household rows (spouse + dependents) — personal types only ───────
+  // Staff may omit everything (warn-don't-block); whatever WAS provided is
+  // stored. Spouse only alongside a married filing status.
+  const isPersonalType = includesPersonal(input.appointment_type);
+  const isMarried = input.filing_status === 'married_filing_jointly'
+    || input.filing_status === 'married_filing_separately';
+  const peopleRows = isPersonalType
+    ? [
+        ...(isMarried && input.spouse
+          ? [{
+              appointment_id: appointment.id as string,
+              role:           'spouse',
+              name:           input.spouse.name,
+              dob:            input.spouse.dob,
+              relationship:   null as string | null,
+              filing_with_us: false,
+            }]
+          : []),
+        ...input.dependents.map(d => ({
+          appointment_id: appointment.id as string,
+          role:           'dependent',
+          name:           d.name,
+          dob:            d.dob,
+          relationship:   d.relationship?.trim() || null,
+          filing_with_us: d.filing_with_us,
+        })),
+      ]
+    : [];
+
+  if (peopleRows.length > 0) {
+    const { error: peopleError } = await supabase
+      .from('appointment_people')
+      .insert(peopleRows);
+    if (peopleError) {
+      // Compensating rollback: no messages exist yet (sends happen below), so
+      // deleting the appointment (CASCADE clears any partial people rows) plus
+      // freeing the claimed slots leaves zero trace of the failed booking.
+      await supabase.from('appointments').delete().eq('id', appointment.id);
+      await rollbackSlots();
+      console.error('[POST /api/appointments] people insert failed, booking rolled back:', peopleError);
+      return NextResponse.json({ error: peopleError.message }, { status: 500 });
+    }
+  }
+
   // Step 4: Send confirmation messages
   const messagingAppt: MessagingAppt = {
     id:                   appointment.id,
@@ -248,6 +314,7 @@ export async function POST(request: NextRequest) {
     language:             appointment.language,
     auto_send_checklist:  autoSendChecklist,
     checklist_sent:       false,
+    filing_status:        appointment.filing_status ?? null,
   };
 
   if (autoSendChecklist) {

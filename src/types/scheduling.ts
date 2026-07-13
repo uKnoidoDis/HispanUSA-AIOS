@@ -55,6 +55,18 @@ export type ServiceSubtype =
   | 'general_consulting'
   | 'other';
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type FilingStatus = 'single' | 'married_filing_jointly' | 'married_filing_separately';
+
+// One row per person attached to an appointment (spouse or dependent) —
+// appointment_people table, migration 013. Spouse rows have relationship null.
+export interface AppointmentPerson {
+  id: string;
+  role: 'spouse' | 'dependent';
+  name: string;
+  dob: string; // YYYY-MM-DD
+  relationship: string | null;
+  filing_with_us: boolean;
+}
 
 export interface Appointment {
   id: string;
@@ -63,6 +75,7 @@ export interface Appointment {
   client_phone: string;
   client_email: string | null;
   company_name: string | null; // corporate types only; nullable (staff may skip)
+  filing_status: FilingStatus | null; // personal types only; nullable (staff may skip)
   appointment_type: AppointmentType;
   service_subtype: ServiceSubtype | null;
   service_subtype_other: string | null;

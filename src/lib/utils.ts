@@ -101,3 +101,22 @@ export function addDaysToDate(dateStr: string, days: number): string {
   date.setDate(date.getDate() + days);
   return format(date, 'yyyy-MM-dd');
 }
+
+// True iff dateStr (YYYY-MM-DD) is a real calendar date (2026-02-30 fails the
+// round-trip), not in the future (Eastern "today" is the boundary), and not
+// more than 120 years past. Server-side DOB sanity for spouse/dependent rows —
+// the Zod regex only guarantees shape, not validity.
+export function isPlausibleDob(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const parsed = new Date(Date.UTC(y, m - 1, d));
+  if (
+    parsed.getUTCFullYear() !== y ||
+    parsed.getUTCMonth() !== m - 1 ||
+    parsed.getUTCDate() !== d
+  ) return false;
+  const today = easternDateString();
+  if (dateStr > today) return false;
+  const floor = `${Number(today.slice(0, 4)) - 120}${today.slice(4)}`;
+  return dateStr >= floor;
+}

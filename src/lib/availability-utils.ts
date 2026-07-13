@@ -148,6 +148,15 @@ export function includesCorporate(appointmentType: string): boolean {
   return appointmentType === 'corporate_tax' || appointmentType === 'personal_corporate_tax';
 }
 
+// True iff this appointment type includes a personal return — the types that
+// carry filing_status / spouse / dependents. Same centralization rule as
+// includesCorporate: every surface (wizard, staff modal, API validation,
+// detail displays, messaging) checks through here, never a local
+// type === 'personal_tax' comparison that misses the combined type.
+export function includesPersonal(appointmentType: string): boolean {
+  return appointmentType === 'personal_tax' || appointmentType === 'personal_corporate_tax';
+}
+
 // The consecutive 30-min slot start times this appointment type occupies,
 // beginning at startTime (HH:MM or HH:MM:SS). Length === slotsForType(type).
 export function slotStartTimesFor(startTime: string, appointmentType: string): string[] {

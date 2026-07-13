@@ -6,8 +6,9 @@ import Header from '@/components/dashboard/Header';
 import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import { formatTime } from '@/lib/utils';
-import { includesCorporate } from '@/lib/availability-utils';
-import type { Preparer, Appointment, AppointmentStatus } from '@/types/scheduling';
+import { includesCorporate, includesPersonal } from '@/lib/availability-utils';
+import { formatDateShort } from '@/lib/utils';
+import type { Preparer, Appointment, AppointmentStatus, AppointmentPerson } from '@/types/scheduling';
 import { appointmentColor } from '@/components/calendar/calendarColors';
 import RescheduleModal from '@/components/appointments/RescheduleModal';
 
@@ -25,7 +26,14 @@ interface MessageRow {
 interface AppointmentDetail extends Appointment {
   preparer: Pick<Preparer, 'id' | 'name' | 'color_hex' | 'color_name'>;
   messages: MessageRow[];
+  people: AppointmentPerson[];
 }
+
+const FILING_STATUS_LABELS: Record<string, string> = {
+  single:                    'Single',
+  married_filing_jointly:    'Married Filing Jointly',
+  married_filing_separately: 'Married Filing Separately',
+};
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -250,6 +258,41 @@ export default function AppointmentDetailPage({
               )}
               <p>{appt.client_phone}</p>
               {appt.client_email && <p className="text-gray-500">{appt.client_email}</p>}
+              {includesPersonal(appt.appointment_type) && (() => {
+                const spouse = (appt.people ?? []).find(p => p.role === 'spouse');
+                const dependents = (appt.people ?? []).filter(p => p.role === 'dependent');
+                const married = appt.filing_status === 'married_filing_jointly'
+                  || appt.filing_status === 'married_filing_separately';
+                return (
+                  <div className="pt-2 mt-2 border-t border-gray-100 space-y-1">
+                    {appt.filing_status
+                      ? <p>Filing status: {FILING_STATUS_LABELS[appt.filing_status] ?? appt.filing_status}</p>
+                      : <p className="text-gray-400 italic">Filing status: — not provided</p>}
+                    {married && (
+                      spouse
+                        ? <p>Spouse: {spouse.name} <span className="text-gray-500">(DOB {formatDateShort(spouse.dob)})</span></p>
+                        : <p className="text-gray-400 italic">Spouse: — not provided</p>
+                    )}
+                    {dependents.length > 0 ? (
+                      <div>
+                        <p className="font-medium">Dependents:</p>
+                        <ul className="list-disc pl-5 space-y-0.5">
+                          {dependents.map(d => (
+                            <li key={d.id}>
+                              {d.name} <span className="text-gray-500">(DOB {formatDateShort(d.dob)}{d.relationship ? `, ${d.relationship}` : ''})</span>
+                              {d.filing_with_us && (
+                                <span className="ml-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-full">Files with us</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 italic">Dependents: — none recorded</p>
+                    )}
+                  </div>
+                );
+              })()}
               <p className="text-xs text-gray-400 uppercase mt-1">
                 {appt.language === 'es' ? 'Spanish' : 'English'}
               </p>

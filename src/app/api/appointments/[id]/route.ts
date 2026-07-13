@@ -30,7 +30,8 @@ export async function GET(
     .select(`
       *,
       preparer:preparers(id, name, color_hex, color_name),
-      messages(id, channel, message_type, status, error_message, sent_at)
+      messages(id, channel, message_type, status, error_message, sent_at),
+      people:appointment_people(id, role, name, dob, relationship, filing_with_us)
     `)
     .eq('id', params.id)
     .single();

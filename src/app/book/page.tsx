@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Check, Phone, Mail, User, Clock, Calendar, FileText, Briefcase, Building2 } from 'lucide-react';
-import { includesCorporate } from '@/lib/availability-utils';
+import { includesCorporate, includesPersonal } from '@/lib/availability-utils';
+import { isPlausibleDob } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,15 @@ type SubType =
   | 'general_consulting'
   | 'other';
 
+type FilingStatusValue = 'single' | 'married_filing_jointly' | 'married_filing_separately';
+
+interface WizardDependent {
+  name:         string;
+  dob:          string;  // YYYY-MM-DD (native date input)
+  relationship: string;  // free text, optional
+  filingWithUs: boolean;
+}
+
 interface BookingState {
   language:         Lang;
   appointmentType:  ApptType | null;
@@ -34,6 +44,11 @@ interface BookingState {
   company:          string;   // required when the type includes a corporate return
   smsConsent:       boolean;
   otherDetail:      string;   // free text when serviceSubtype === 'other'
+  // Household — personal types only (required on this public wizard)
+  filingStatus:     FilingStatusValue | null;
+  spouseName:       string;   // required when filingStatus is married_*
+  spouseDob:        string;   // YYYY-MM-DD
+  dependents:       WizardDependent[]; // zero dependents is valid
 }
 
 // ─── Translations ─────────────────────────────────────────────────────────────
@@ -112,6 +127,29 @@ const copy = {
     days:   ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     today:  'Today',
     stepLabels: ['Language','Type','Date','Time','Contact','Done'],
+    householdTitle:      'Tax Filing Information',
+    filingStatusLabel:   'Filing Status',
+    filingStatusPlaceholder: 'Select your filing status',
+    filingStatuses: {
+      single:                    'Single',
+      married_filing_jointly:    'Married Filing Jointly',
+      married_filing_separately: 'Married Filing Separately',
+    },
+    spouseNameLabel:     'Spouse Full Name',
+    spouseNamePlaceholder: 'Juan García',
+    spouseDobLabel:      'Spouse Date of Birth',
+    dependentsTitle:     'Dependents',
+    dependentsNote:      'Add your dependents if you have any (optional).',
+    addDependent:        '+ Add dependent',
+    removeDependent:     'Remove',
+    dependentLabel:      'Dependent',
+    dependentNameLabel:  'Full Name',
+    dependentNamePlaceholder: 'Ana García',
+    dependentDobLabel:   'Date of Birth',
+    relationshipLabel:   'Relationship (optional)',
+    relationshipPlaceholder: 'Son, daughter, mother…',
+    filingWithUsLabel:   'This dependent will file a tax return with HispanUSA',
+    dobError:            'Enter a valid date of birth',
     smsConsentLabel: 'Yes, send me text message reminders about my appointment.',
     smsConsentDisclosure:
       'By checking this box, you agree to receive appointment-related text ' +
@@ -195,6 +233,29 @@ const copy = {
     days:   ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
     today:  'Hoy',
     stepLabels: ['Idioma','Tipo','Fecha','Horario','Contacto','Listo'],
+    householdTitle:      'Información de Declaración',
+    filingStatusLabel:   'Estado Civil Tributario',
+    filingStatusPlaceholder: 'Seleccione su estado civil tributario',
+    filingStatuses: {
+      single:                    'Soltero(a)',
+      married_filing_jointly:    'Casado(a) declarando en conjunto',
+      married_filing_separately: 'Casado(a) declarando por separado',
+    },
+    spouseNameLabel:     'Nombre Completo del Cónyuge',
+    spouseNamePlaceholder: 'Juan García',
+    spouseDobLabel:      'Fecha de Nacimiento del Cónyuge',
+    dependentsTitle:     'Dependientes',
+    dependentsNote:      'Agregue sus dependientes si los tiene (opcional).',
+    addDependent:        '+ Agregar dependiente',
+    removeDependent:     'Eliminar',
+    dependentLabel:      'Dependiente',
+    dependentNameLabel:  'Nombre Completo',
+    dependentNamePlaceholder: 'Ana García',
+    dependentDobLabel:   'Fecha de Nacimiento',
+    relationshipLabel:   'Parentesco (opcional)',
+    relationshipPlaceholder: 'Hijo, hija, madre…',
+    filingWithUsLabel:   'Este dependiente declarará impuestos con HispanUSA',
+    dobError:            'Ingrese una fecha de nacimiento válida',
     smsConsentLabel: 'Sí, envíenme recordatorios de mi cita por mensaje de texto.',
     smsConsentDisclosure:
       'Al marcar esta casilla, usted acepta recibir mensajes de texto ' +
@@ -260,6 +321,10 @@ export default function BookPage() {
     company:         '',
     smsConsent:      false,
     otherDetail:     '',
+    filingStatus:    null,
+    spouseName:      '',
+    spouseDob:       '',
+    dependents:      [],
   });
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -280,7 +345,11 @@ export default function BookPage() {
 
   // ── Step: Type ────────────────────────────────────────────────────────────
   function selectType(type: ApptType) {
-    setBooking(b => ({ ...b, appointmentType: type, serviceSubtype: null, otherDetail: '', date: null, time: null }));
+    setBooking(b => ({
+      ...b, appointmentType: type, serviceSubtype: null, otherDetail: '', date: null, time: null,
+      // Household data belongs to personal types — reset on any type change.
+      filingStatus: null, spouseName: '', spouseDob: '', dependents: [],
+    }));
     if (type !== 'professional_services') setStep('date');
   }
 
@@ -314,8 +383,48 @@ export default function BookPage() {
     if (booking.email && !isValidEmail(booking.email)) {
       errs.email = t.emailError;
     }
+    // Household — personal types only. Filing status always required; spouse
+    // required for married statuses; every ADDED dependent row must be complete.
+    if (booking.appointmentType && includesPersonal(booking.appointmentType)) {
+      if (!booking.filingStatus) errs.filingStatus = t.requiredError;
+      const married = booking.filingStatus === 'married_filing_jointly'
+        || booking.filingStatus === 'married_filing_separately';
+      if (married) {
+        if (!booking.spouseName.trim()) errs.spouseName = t.requiredError;
+        if (!booking.spouseDob) errs.spouseDob = t.requiredError;
+        else if (!isPlausibleDob(booking.spouseDob)) errs.spouseDob = t.dobError;
+      }
+      booking.dependents.forEach((d, i) => {
+        if (!d.name.trim()) errs[`dep_${i}_name`] = t.requiredError;
+        if (!d.dob) errs[`dep_${i}_dob`] = t.requiredError;
+        else if (!isPlausibleDob(d.dob)) errs[`dep_${i}_dob`] = t.dobError;
+      });
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
+  }
+
+  // ── Dependents: add/remove/update rows ─────────────────────────────────────
+  function addDependent() {
+    setBooking(b => ({
+      ...b,
+      dependents: [...b.dependents, { name: '', dob: '', relationship: '', filingWithUs: false }],
+    }));
+  }
+  function removeDependent(i: number) {
+    setBooking(b => ({ ...b, dependents: b.dependents.filter((_, idx) => idx !== i) }));
+    // Row indices shift on removal — clear all dependent errors; validation re-runs on submit.
+    setErrors(er => {
+      const next = { ...er };
+      Object.keys(next).forEach(k => { if (k.startsWith('dep_')) delete next[k]; });
+      return next;
+    });
+  }
+  function updateDependent(i: number, patch: Partial<WizardDependent>) {
+    setBooking(b => ({
+      ...b,
+      dependents: b.dependents.map((d, idx) => (idx === i ? { ...d, ...patch } : d)),
+    }));
   }
 
   async function handleSubmit() {
@@ -343,6 +452,21 @@ export default function BookPage() {
           start_time:       booking.time,
           language:         booking.language,
           sms_consent:      booking.smsConsent,
+          filing_status:    includesPersonal(booking.appointmentType)
+            ? booking.filingStatus
+            : null,
+          spouse:           includesPersonal(booking.appointmentType)
+            && (booking.filingStatus === 'married_filing_jointly' || booking.filingStatus === 'married_filing_separately')
+            ? { name: booking.spouseName.trim(), dob: booking.spouseDob }
+            : null,
+          dependents:       includesPersonal(booking.appointmentType)
+            ? booking.dependents.map(d => ({
+                name:           d.name.trim(),
+                dob:            d.dob,
+                relationship:   d.relationship.trim() || null,
+                filing_with_us: d.filingWithUs,
+              }))
+            : [],
         }),
       });
 
@@ -668,6 +792,135 @@ export default function BookPage() {
                   />
                 </FormField>
               </div>
+
+              {/* ── Tax filing information (personal types only) ── */}
+              {booking.appointmentType && includesPersonal(booking.appointmentType) && (
+                <div className="mt-5 rounded-xl border-2 border-gray-200 bg-white p-4">
+                  <h3 className="text-sm font-bold text-[#03296A] mb-3">{t.householdTitle}</h3>
+                  <div className="grid gap-4">
+                    <FormField label={t.filingStatusLabel} icon={<FileText className="w-4 h-4" />} error={errors.filingStatus}>
+                      <select
+                        value={booking.filingStatus ?? ''}
+                        onChange={e => {
+                          const v = (e.target.value || null) as FilingStatusValue | null;
+                          const staysMarried = v === 'married_filing_jointly' || v === 'married_filing_separately';
+                          setBooking(b => ({
+                            ...b,
+                            filingStatus: v,
+                            // Leaving a married status clears the spouse fields.
+                            ...(staysMarried ? {} : { spouseName: '', spouseDob: '' }),
+                          }));
+                          setErrors(er => ({ ...er, filingStatus: undefined, spouseName: undefined, spouseDob: undefined }));
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors ${
+                          errors.filingStatus ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
+                        }`}
+                      >
+                        <option value="">{t.filingStatusPlaceholder}</option>
+                        <option value="single">{t.filingStatuses.single}</option>
+                        <option value="married_filing_jointly">{t.filingStatuses.married_filing_jointly}</option>
+                        <option value="married_filing_separately">{t.filingStatuses.married_filing_separately}</option>
+                      </select>
+                    </FormField>
+
+                    {(booking.filingStatus === 'married_filing_jointly' || booking.filingStatus === 'married_filing_separately') && (
+                      <>
+                        <FormField label={t.spouseNameLabel} icon={<User className="w-4 h-4" />} error={errors.spouseName}>
+                          <input
+                            type="text"
+                            placeholder={t.spouseNamePlaceholder}
+                            value={booking.spouseName}
+                            onChange={e => { setBooking(b => ({ ...b, spouseName: e.target.value })); setErrors(er => ({ ...er, spouseName: undefined })); }}
+                            className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors placeholder:text-gray-400 ${
+                              errors.spouseName ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
+                            }`}
+                          />
+                        </FormField>
+                        <FormField label={t.spouseDobLabel} icon={<Calendar className="w-4 h-4" />} error={errors.spouseDob}>
+                          <input
+                            type="date"
+                            value={booking.spouseDob}
+                            onChange={e => { setBooking(b => ({ ...b, spouseDob: e.target.value })); setErrors(er => ({ ...er, spouseDob: undefined })); }}
+                            className={`w-full px-4 py-3 rounded-xl border-2 bg-white text-gray-800 outline-none transition-colors ${
+                              errors.spouseDob ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
+                            }`}
+                          />
+                        </FormField>
+                      </>
+                    )}
+
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 mb-1">{t.dependentsTitle}</p>
+                      <p className="text-xs text-gray-400 mb-2">{t.dependentsNote}</p>
+                      {booking.dependents.map((dep, i) => (
+                        <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3 mb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-gray-500">{t.dependentLabel} {i + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeDependent(i)}
+                              className="text-xs font-medium text-red-600 underline hover:text-red-700"
+                            >
+                              {t.removeDependent}
+                            </button>
+                          </div>
+                          <div className="grid gap-3">
+                            <FormField label={t.dependentNameLabel} error={errors[`dep_${i}_name`]}>
+                              <input
+                                type="text"
+                                placeholder={t.dependentNamePlaceholder}
+                                value={dep.name}
+                                onChange={e => { updateDependent(i, { name: e.target.value }); setErrors(er => ({ ...er, [`dep_${i}_name`]: undefined })); }}
+                                className={`w-full px-3 py-2.5 rounded-lg border-2 bg-white text-gray-800 text-sm outline-none transition-colors placeholder:text-gray-400 ${
+                                  errors[`dep_${i}_name`] ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
+                                }`}
+                              />
+                            </FormField>
+                            <FormField label={t.dependentDobLabel} error={errors[`dep_${i}_dob`]}>
+                              <input
+                                type="date"
+                                value={dep.dob}
+                                onChange={e => { updateDependent(i, { dob: e.target.value }); setErrors(er => ({ ...er, [`dep_${i}_dob`]: undefined })); }}
+                                className={`w-full px-3 py-2.5 rounded-lg border-2 bg-white text-gray-800 text-sm outline-none transition-colors ${
+                                  errors[`dep_${i}_dob`] ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#03296A]'
+                                }`}
+                              />
+                            </FormField>
+                            <FormField label={t.relationshipLabel}>
+                              <input
+                                type="text"
+                                placeholder={t.relationshipPlaceholder}
+                                value={dep.relationship}
+                                onChange={e => updateDependent(i, { relationship: e.target.value })}
+                                maxLength={100}
+                                className="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 bg-white text-gray-800 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-[#03296A]"
+                              />
+                            </FormField>
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={dep.filingWithUs}
+                                onChange={e => updateDependent(i, { filingWithUs: e.target.checked })}
+                                className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-2 border-gray-300 accent-[#03296A] focus:outline-none focus:ring-2 focus:ring-[#03296A]/40"
+                              />
+                              <span className="text-xs text-gray-600">{t.filingWithUsLabel}</span>
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                      {booking.dependents.length < 10 && (
+                        <button
+                          type="button"
+                          onClick={addDependent}
+                          className="text-sm font-semibold text-[#03296A] underline hover:text-[#244B75]"
+                        >
+                          {t.addDependent}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ── SMS consent (unchecked by default; booking proceeds either way) ── */}
               <div className="mt-5 rounded-xl border-2 border-gray-200 bg-white p-4">

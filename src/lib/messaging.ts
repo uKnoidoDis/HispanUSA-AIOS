@@ -14,7 +14,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { sendSMS } from './twilio';
 import { sendEmail } from './resend';
 import { loadAndRenderChecklists } from './checklist-renderer';
-import { formatDate, formatTime } from './utils';
+import { formatDate, formatTime, formatDateShort } from './utils';
+import { includesPersonal } from './availability-utils';
 import type { ChecklistType } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -42,6 +43,18 @@ export interface MessagingAppt {
   language: 'en' | 'es';
   auto_send_checklist: boolean;
   checklist_sent: boolean;
+  // Personal types only (migration 013). Optional: call sites that select('*')
+  // or hold the validated input pass it through; older callers omit it safely.
+  filing_status?: 'single' | 'married_filing_jointly' | 'married_filing_separately' | null;
+}
+
+// Spouse/dependent row shape as fetched from appointment_people (013).
+export interface MessagingPerson {
+  role: 'spouse' | 'dependent';
+  name: string;
+  dob: string; // YYYY-MM-DD
+  relationship: string | null;
+  filing_with_us: boolean;
 }
 
 export interface SendResult {
@@ -63,13 +76,44 @@ type MessageType =
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
-function getChecklistTypes(appointmentType: string): ChecklistType[] | null {
-  if (appointmentType === 'personal_tax') return ['checklist_1'];
+function getChecklistTypes(appointmentType: string, hasDependents: boolean): ChecklistType[] | null {
+  // checklist_2 is ADDITIVE dependent sections — the renderer merges it into
+  // checklist_1 (checklist-renderer.ts). It fires only when the booking has
+  // ≥1 dependent recorded in appointment_people (migration 013).
+  if (appointmentType === 'personal_tax') {
+    return hasDependents ? ['checklist_1', 'checklist_2'] : ['checklist_1'];
+  }
   if (appointmentType === 'corporate_tax') return ['checklist_4'];
   // Personal + Corporate = both personal and corporate document checklists.
   // TODO(Mariana): confirm the exact combined doc list; "both" is the safe default.
-  if (appointmentType === 'personal_corporate_tax') return ['checklist_1', 'checklist_4'];
+  if (appointmentType === 'personal_corporate_tax') {
+    return hasDependents
+      ? ['checklist_1', 'checklist_2', 'checklist_4']
+      : ['checklist_1', 'checklist_4'];
+  }
   return null; // professional_services → generic message
+}
+
+// People rows for an appointment. Senders self-fetch so no call site (booking
+// routes, approve, manual button, reminder cron) can forget to supply them —
+// one indexed SELECT per send, negligible at this volume. Returns [] on error:
+// a fetch failure must never fail a send; worst case the email omits the
+// household summary / dependents checklist.
+async function fetchAppointmentPeople(
+  supabase: SupabaseClient,
+  appointmentId: string
+): Promise<MessagingPerson[]> {
+  const { data, error } = await supabase
+    .from('appointment_people')
+    .select('role, name, dob, relationship, filing_with_us')
+    .eq('appointment_id', appointmentId)
+    .order('role', { ascending: false }) // 'spouse' sorts after 'dependent' — desc puts spouse first
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.warn('[MESSAGING] appointment_people fetch failed (send continues):', error.message);
+    return [];
+  }
+  return (data ?? []) as MessagingPerson[];
 }
 
 async function logMessage(
@@ -178,6 +222,57 @@ function wrapEmail(bodyHtml: string): string {
 </html>`;
 }
 
+const FILING_STATUS_EMAIL_LABELS: Record<'en' | 'es', Record<string, string>> = {
+  en: {
+    single: 'Single',
+    married_filing_jointly: 'Married Filing Jointly',
+    married_filing_separately: 'Married Filing Separately',
+  },
+  es: {
+    single: 'Soltero(a)',
+    married_filing_jointly: 'Casado(a) declarando en conjunto',
+    married_filing_separately: 'Casado(a) declarando por separado',
+  },
+};
+
+// Household summary (filing status, spouse, dependents) for confirmation-type
+// emails on personal tax types. Inline CSS only (email clients strip <style>).
+// Returns '' when there is nothing to show — safe to interpolate everywhere.
+function householdSummaryHtml(
+  filingStatus: string | null | undefined,
+  people: MessagingPerson[],
+  lang: 'en' | 'es'
+): string {
+  const spouse = people.find(p => p.role === 'spouse') ?? null;
+  const dependents = people.filter(p => p.role === 'dependent');
+  if (!filingStatus && !spouse && dependents.length === 0) return '';
+
+  const L = lang === 'es'
+    ? { title: 'Información de declaración', filing: 'Estado civil tributario', spouse: 'Cónyuge', dependents: 'Dependientes', dob: 'Nacimiento', filesWithUs: 'declara con HispanUSA', rel: 'parentesco' }
+    : { title: 'Tax filing information', filing: 'Filing status', spouse: 'Spouse', dependents: 'Dependents', dob: 'DOB', filesWithUs: 'files with HispanUSA', rel: 'relationship' };
+
+  const rows: string[] = [];
+  if (filingStatus) {
+    rows.push(`<p style="margin:0 0 6px;color:#374151;font-size:14px;"><strong>${L.filing}:</strong> ${FILING_STATUS_EMAIL_LABELS[lang][filingStatus] ?? filingStatus}</p>`);
+  }
+  if (spouse) {
+    rows.push(`<p style="margin:0 0 6px;color:#374151;font-size:14px;"><strong>${L.spouse}:</strong> ${spouse.name} (${L.dob}: ${formatDateShort(spouse.dob)})</p>`);
+  }
+  if (dependents.length > 0) {
+    const items = dependents.map(d => {
+      const rel = d.relationship ? `, ${L.rel}: ${d.relationship}` : '';
+      const files = d.filing_with_us ? ` — ${L.filesWithUs}` : '';
+      return `<li style="margin:0 0 4px;color:#374151;font-size:14px;">${d.name} (${L.dob}: ${formatDateShort(d.dob)}${rel})${files}</li>`;
+    }).join('');
+    rows.push(`<p style="margin:0 0 4px;color:#374151;font-size:14px;"><strong>${L.dependents}:</strong></p><ul style="margin:0 0 6px;padding-left:20px;">${items}</ul>`);
+  }
+
+  return `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;margin:0 0 16px;">
+    <p style="margin:0 0 8px;color:#03296A;font-size:14px;"><strong>${L.title}</strong></p>
+    ${rows.join('')}
+  </div>`;
+}
+
 /** Appointment info block used in confirmation/reminder emails */
 function apptInfoBlock(dateDisplay: string, timeDisplay: string): string {
   return `<div style="background:#f0f7ff;border-left:4px solid #03296A;padding:16px;border-radius:4px;margin:16px 0;">
@@ -206,6 +301,11 @@ export async function sendConfirmationMessage(
   const dateDisplay = formatDate(appt.date);
   const timeDisplay = formatTime(appt.start_time);
 
+  // Household summary — email only; '' for non-personal types / no data.
+  const householdSummary = includesPersonal(appt.appointment_type)
+    ? householdSummaryHtml(appt.filing_status, await fetchAppointmentPeople(supabase, appt.id), lang)
+    : '';
+
   // ── SMS ─────────────────────────────────────────────────────────────────────
   const smsBody = lang === 'es'
     ? `Su cita en HispanUSA ha sido confirmada para el ${dateDisplay} a las ${timeDisplay}. Oficina: ${OFFICE_ADDRESS}. Llame al ${OFFICE_PHONE} con preguntas.`
@@ -219,12 +319,12 @@ export async function sendConfirmationMessage(
   const bodyHtml = lang === 'es'
     ? `<p style="margin:0 0 12px;color:#374151;">Estimado/a <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Su cita ha sido confirmada:</p>
-       ${apptInfoBlock(dateDisplay, timeDisplay)}
+       ${apptInfoBlock(dateDisplay, timeDisplay)}${householdSummary}
        <p style="margin:0 0 12px;color:#374151;">Para reprogramar llame al <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> o reserve en línea en ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`
     : `<p style="margin:0 0 12px;color:#374151;">Dear <strong>${appt.client_name}</strong>,</p>
        <p style="margin:0 0 4px;color:#374151;">Your appointment has been confirmed:</p>
-       ${apptInfoBlock(dateDisplay, timeDisplay)}
+       ${apptInfoBlock(dateDisplay, timeDisplay)}${householdSummary}
        <p style="margin:0 0 12px;color:#374151;">To reschedule, call <a href="tel:${OFFICE_PHONE}" style="color:#03296A;">${OFFICE_PHONE}</a> or book online at ${BOOKING_LINK_HTML}.</p>
        <p style="margin:0;color:#6b7280;font-size:13px;">— HispanUSA Accounting &amp; Tax Services</p>`;
 
@@ -315,7 +415,11 @@ export async function sendChecklistMessage(
   const { language: lang } = appt;
   const dateDisplay = formatDate(appt.date);
   const timeDisplay = formatTime(appt.start_time);
-  const checklistTypes = getChecklistTypes(appt.appointment_type);
+  const people = await fetchAppointmentPeople(supabase, appt.id);
+  const checklistTypes = getChecklistTypes(
+    appt.appointment_type,
+    people.some(p => p.role === 'dependent'),
+  );
 
   // confirm = the tax-approval path: this ONE email both confirms the appointment
   // (date/time/address block, above) and lists the documents (below), replacing the
@@ -368,11 +472,16 @@ export async function sendChecklistMessage(
   // Confirmation lead (date/time/address) shown ABOVE the documents on the confirm
   // path; empty otherwise. The docs-intro line then omits the repeated date on the
   // confirm path (it's already in the block) — non-confirm keeps today's wording.
+  // Household summary (filing status / spouse / dependents) — confirmation-type
+  // emails only, personal types only. '' whenever there is nothing to show.
+  const householdSummary = confirm && includesPersonal(appt.appointment_type)
+    ? householdSummaryHtml(appt.filing_status, people, lang)
+    : '';
   const confirmLeadEs = confirm
-    ? `<p style="margin:0 0 4px;color:#374151;">Su cita ha sido <strong>confirmada</strong>:</p>${apptInfoBlock(dateDisplay, timeDisplay)}`
+    ? `<p style="margin:0 0 4px;color:#374151;">Su cita ha sido <strong>confirmada</strong>:</p>${apptInfoBlock(dateDisplay, timeDisplay)}${householdSummary}`
     : '';
   const confirmLeadEn = confirm
-    ? `<p style="margin:0 0 4px;color:#374151;">Your appointment has been <strong>confirmed</strong>:</p>${apptInfoBlock(dateDisplay, timeDisplay)}`
+    ? `<p style="margin:0 0 4px;color:#374151;">Your appointment has been <strong>confirmed</strong>:</p>${apptInfoBlock(dateDisplay, timeDisplay)}${householdSummary}`
     : '';
   const docsIntroEs = confirm
     ? 'Por favor prepare los siguientes documentos antes de su cita:'
@@ -639,7 +748,11 @@ export async function sendReminderMessage(
 
   } else if (isDocReminder) {
     // ── 7d/3d with checklist: include document reminder ──────────────────────
-    const checklistTypes = getChecklistTypes(appt.appointment_type);
+    const people = await fetchAppointmentPeople(supabase, appt.id);
+    const checklistTypes = getChecklistTypes(
+      appt.appointment_type,
+      people.some(p => p.role === 'dependent'),
+    );
     let checklistHtml = '';
     if (checklistTypes) {
       checklistHtml = await loadAndRenderChecklists(checklistTypes, lang);

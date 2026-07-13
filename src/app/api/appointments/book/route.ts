@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
-import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
-import { addThirtyMinutes, slotStartTimesFor, endTimeFor, includesCorporate } from '@/lib/availability-utils';
+import { normalizePhone, easternDateString, isBookableEastern, isPlausibleDob } from '@/lib/utils';
+import { addThirtyMinutes, slotStartTimesFor, endTimeFor, includesCorporate, includesPersonal } from '@/lib/availability-utils';
 import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 
 // ─── Validation ────────────────────────────────────────────────────────────────
@@ -11,6 +11,12 @@ import { sendPendingMessage, type MessagingAppt } from '@/lib/messaging';
 // Bump this (year-month) whenever the disclosure wording materially changes,
 // so each stored consent record points at the exact text the client agreed to.
 const SMS_CONSENT_TEXT_VERSION = 'v1-2026-05';
+
+// DOB: shape via regex, validity via isPlausibleDob (real calendar date, not in
+// the future, not more than 120 years past). Shared by spouse + dependents.
+const dobSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'DOB must be YYYY-MM-DD')
+  .refine(isPlausibleDob, { message: 'DOB must be a valid past date within 120 years' });
 
 const bookSchema = z.object({
   client_name:      z.string().min(2, 'Full name required'),
@@ -30,6 +36,18 @@ const bookSchema = z.object({
   start_time:       z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM or HH:MM:SS'),
   language:         z.enum(['en', 'es']).default('es'),
   sms_consent:      z.boolean().default(false),
+  // Household (migration 013) — personal types only; gated again at write time.
+  filing_status:    z.enum(['single', 'married_filing_jointly', 'married_filing_separately']).optional().nullable(),
+  spouse:           z.object({
+    name: z.string().trim().min(1).max(200),
+    dob:  dobSchema,
+  }).optional().nullable(),
+  dependents:       z.array(z.object({
+    name:           z.string().trim().min(1).max(200),
+    dob:            dobSchema,
+    relationship:   z.string().trim().max(100).optional().nullable(),
+    filing_with_us: z.boolean().default(false),
+  })).max(10).default([]),
 }).refine(
   data => data.appointment_type !== 'professional_services' || !!data.service_subtype,
   { message: 'service_subtype is required for professional_services' }
@@ -42,6 +60,17 @@ const bookSchema = z.object({
   // (Staff bookings via /api/appointments deliberately do NOT enforce this.)
   data => !includesCorporate(data.appointment_type) || !!data.company_name?.trim(),
   { message: 'company_name is required for corporate appointment types' }
+).refine(
+  // Personal returns need a filing status (Ruth's exactly-three values).
+  // (Staff bookings via /api/appointments deliberately do NOT enforce this.)
+  data => !includesPersonal(data.appointment_type) || !!data.filing_status,
+  { message: 'filing_status is required for personal appointment types' }
+).refine(
+  // A married filing status names a spouse. Only meaningful on personal types.
+  data => !includesPersonal(data.appointment_type)
+    || !(data.filing_status === 'married_filing_jointly' || data.filing_status === 'married_filing_separately')
+    || !!data.spouse,
+  { message: 'spouse is required for married filing statuses' }
 );
 
 // Extracts the client IP from proxy headers. Never trusts a client-supplied
@@ -256,6 +285,9 @@ export async function POST(request: NextRequest) {
       service_subtype_other: input.service_subtype === 'other'
         ? (input.service_subtype_other?.trim() || null)
         : null,
+      filing_status:        includesPersonal(input.appointment_type)
+        ? (input.filing_status ?? null)
+        : null,
       date:                 input.date,
       start_time:           startTime,
       end_time:             endTime,
@@ -285,6 +317,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: apptError.message }, { status: 500 });
   }
 
+  // ── Insert household rows (spouse + dependents) — personal types only ───────
+  // Spouse is stored only for married filing statuses; dependents whenever the
+  // type includes a personal return. One bulk insert; zero rows → skipped.
+  const isPersonalType = includesPersonal(input.appointment_type);
+  const isMarried = input.filing_status === 'married_filing_jointly'
+    || input.filing_status === 'married_filing_separately';
+  const peopleRows = isPersonalType
+    ? [
+        ...(isMarried && input.spouse
+          ? [{
+              appointment_id: appointment.id as string,
+              role:           'spouse',
+              name:           input.spouse.name,
+              dob:            input.spouse.dob,
+              relationship:   null as string | null,
+              filing_with_us: false,
+            }]
+          : []),
+        ...input.dependents.map(d => ({
+          appointment_id: appointment.id as string,
+          role:           'dependent',
+          name:           d.name,
+          dob:            d.dob,
+          relationship:   d.relationship?.trim() || null,
+          filing_with_us: d.filing_with_us,
+        })),
+      ]
+    : [];
+
+  if (peopleRows.length > 0) {
+    const { error: peopleError } = await supabase
+      .from('appointment_people')
+      .insert(peopleRows);
+    if (peopleError) {
+      // Compensating rollback (the route's proven doctrine): no messages exist
+      // yet — sends happen below — so deleting the appointment (CASCADE clears
+      // any partial people rows) plus freeing the claimed slots leaves zero
+      // trace of the failed booking.
+      await supabase.from('appointments').delete().eq('id', appointment.id);
+      await freeClaimedSlots(claimedStarts);
+      console.error('[POST /api/appointments/book] people insert failed, booking rolled back:', peopleError);
+      return NextResponse.json({ error: peopleError.message }, { status: 500 });
+    }
+  }
+
   // ── Acknowledge the request by email (best-effort) ──────────────────────────
   // The booking already succeeded; an email failure must NOT fail the request.
   // sendPendingMessage swallows its own send/log errors, so awaiting it is safe
@@ -301,6 +378,7 @@ export async function POST(request: NextRequest) {
     language:            input.language,
     auto_send_checklist: autoSendChecklist,
     checklist_sent:      false,
+    filing_status:       isPersonalType ? (input.filing_status ?? null) : null,
   };
   await sendPendingMessage(pendingAppt, supabase);
 

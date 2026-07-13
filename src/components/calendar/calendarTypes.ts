@@ -16,6 +16,7 @@ export interface CalendarAppt {
   client_phone: string;
   client_email: string | null;
   company_name: string | null; // corporate types only; nullable (staff may skip)
+  filing_status: 'single' | 'married_filing_jointly' | 'married_filing_separately' | null; // personal types only; nullable (staff may skip)
   appointment_type: 'personal_tax' | 'corporate_tax' | 'personal_corporate_tax' | 'professional_services';
   service_subtype: string | null;
   date: string;        // YYYY-MM-DD
@@ -36,8 +37,19 @@ export interface CalendarMessage {
   sent_at: string | null;
 }
 
+export interface CalendarPerson {
+  id: string;
+  role: 'spouse' | 'dependent';
+  name: string;
+  dob: string; // YYYY-MM-DD
+  relationship: string | null;
+  filing_with_us: boolean;
+}
+
 export interface CalendarApptDetail extends CalendarAppt {
   messages: CalendarMessage[];
+  // Embedded by GET /api/appointments/[id] only — list queries don't fetch people.
+  people: CalendarPerson[];
 }
 
 export type CalendarViewMode = 'week' | 'day' | 'month';

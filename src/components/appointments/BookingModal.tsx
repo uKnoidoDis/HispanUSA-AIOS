@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { normalizePhone, easternDateString, isBookableEastern } from '@/lib/utils';
-import { formatTimeDisplay, slotsForType, consecutiveFreeFrom, endTimeFor, includesCorporate } from '@/lib/availability-utils';
-import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype } from '@/types/scheduling';
+import { formatTimeDisplay, slotsForType, consecutiveFreeFrom, endTimeFor, includesCorporate, includesPersonal } from '@/lib/availability-utils';
+import type { Preparer, AvailabilitySlot, AppointmentType, ServiceSubtype, FilingStatus } from '@/types/scheduling';
 import { preparerDotColor } from '@/components/calendar/calendarColors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -12,6 +12,13 @@ interface BookingModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+type ModalDependent = {
+  name:           string;
+  dob:            string; // YYYY-MM-DD
+  relationship:   string;
+  filing_with_us: boolean;
+};
 
 type FormState = {
   client_name:          string;
@@ -27,6 +34,18 @@ type FormState = {
   language:             'en' | 'es';
   notes:                string;
   auto_send_checklist:  boolean;
+  // Household — personal types only. All optional for staff (warn-don't-block),
+  // but an ADDED row must be complete (no half-rows stored).
+  filing_status:        FilingStatus | '';
+  spouse_name:          string;
+  spouse_dob:           string; // YYYY-MM-DD
+  dependents:           ModalDependent[];
+};
+
+const FILING_STATUS_LABELS: Record<FilingStatus, string> = {
+  single:                    'Single',
+  married_filing_jointly:    'Married Filing Jointly',
+  married_filing_separately: 'Married Filing Separately',
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -65,6 +84,10 @@ const INITIAL_FORM: FormState = {
   language:             'es',
   notes:                '',
   auto_send_checklist:  true,
+  filing_status:        '',
+  spouse_name:          '',
+  spouse_dob:           '',
+  dependents:           [],
 };
 
 // ─── Phone validation (E.164) ─────────────────────────────────────────────────
@@ -179,6 +202,22 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
     if (form.service_subtype === 'other' && !form.service_subtype_other.trim()) {
       return setError('Describe the client’s need for "Other"');
     }
+    // Household half-row guard (personal types): skipping everything is the
+    // staff's sanctioned choice; storing a half-filled person row is not.
+    if (includesPersonal(form.appointment_type)) {
+      const spouseTouched = !!(form.spouse_name.trim() || form.spouse_dob);
+      const spouseComplete = !!(form.spouse_name.trim() && form.spouse_dob);
+      if (spouseTouched && !spouseComplete) {
+        return setError('Complete both spouse fields (name and date of birth) or clear them');
+      }
+      for (let i = 0; i < form.dependents.length; i++) {
+        const d = form.dependents[i];
+        if (!d.name.trim() || !d.dob) {
+          return setError(`Complete or remove dependent ${i + 1} (name and date of birth required)`);
+        }
+      }
+    }
+
     if (!form.preparer_id) return setError('Select a preparer');
     if (!form.date) return setError('Select a date');
 
@@ -206,6 +245,22 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
           language:             form.language,
           notes:                form.notes.trim() || null,
           auto_send_checklist:  form.auto_send_checklist,
+          filing_status:        includesPersonal(form.appointment_type)
+            ? (form.filing_status || null)
+            : null,
+          spouse:               includesPersonal(form.appointment_type)
+            && (form.filing_status === 'married_filing_jointly' || form.filing_status === 'married_filing_separately')
+            && form.spouse_name.trim() && form.spouse_dob
+            ? { name: form.spouse_name.trim(), dob: form.spouse_dob }
+            : null,
+          dependents:           includesPersonal(form.appointment_type)
+            ? form.dependents.map(d => ({
+                name:           d.name.trim(),
+                dob:            d.dob,
+                relationship:   d.relationship.trim() || null,
+                filing_with_us: d.filing_with_us,
+              }))
+            : [],
         }),
       });
 
@@ -338,6 +393,131 @@ export default function BookingModal({ onClose, onSuccess }: BookingModalProps) 
                       No company name — add it if the client has it handy.
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Household (filing status / spouse / dependents) — personal types
+                  only. All optional for staff (warn-don't-block, same doctrine as
+                  company name), but an added row must be complete. */}
+              {includesPersonal(form.appointment_type) && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-sm font-semibold text-[#03296A] mb-2">Tax Filing Information</p>
+
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Filing Status <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                    </label>
+                    <select
+                      value={form.filing_status}
+                      onChange={e => setForm(f => {
+                        const v = e.target.value as FilingStatus | '';
+                        const married = v === 'married_filing_jointly' || v === 'married_filing_separately';
+                        return { ...f, filing_status: v, ...(married ? {} : { spouse_name: '', spouse_dob: '' }) };
+                      })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                    >
+                      <option value="">— Not provided —</option>
+                      {(Object.keys(FILING_STATUS_LABELS) as FilingStatus[]).map(v => (
+                        <option key={v} value={v}>{FILING_STATUS_LABELS[v]}</option>
+                      ))}
+                    </select>
+                    {!form.filing_status && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        No filing status — add it if the client has it handy.
+                      </p>
+                    )}
+                  </div>
+
+                  {(form.filing_status === 'married_filing_jointly' || form.filing_status === 'married_filing_separately') && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Spouse Name <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.spouse_name}
+                          onChange={e => set('spouse_name', e.target.value)}
+                          placeholder="Juan García"
+                          maxLength={200}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Spouse DOB
+                        </label>
+                        <input
+                          type="date"
+                          value={form.spouse_dob}
+                          onChange={e => set('spouse_dob', e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dependents <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                    </label>
+                    {form.dependents.map((dep, i) => (
+                      <div key={i} className="rounded-lg border border-gray-200 bg-white p-2.5 mb-2">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-semibold text-gray-500">Dependent {i + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, dependents: f.dependents.filter((_, idx) => idx !== i) }))}
+                            className="text-xs font-medium text-red-600 hover:text-red-700 underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={dep.name}
+                            onChange={e => setForm(f => ({ ...f, dependents: f.dependents.map((d, idx) => idx === i ? { ...d, name: e.target.value } : d) }))}
+                            placeholder="Full name"
+                            maxLength={200}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                          />
+                          <input
+                            type="date"
+                            value={dep.dob}
+                            onChange={e => setForm(f => ({ ...f, dependents: f.dependents.map((d, idx) => idx === i ? { ...d, dob: e.target.value } : d) }))}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={dep.relationship}
+                          onChange={e => setForm(f => ({ ...f, dependents: f.dependents.map((d, idx) => idx === i ? { ...d, relationship: e.target.value } : d) }))}
+                          placeholder="Relationship (son, daughter, mother…)"
+                          maxLength={100}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#03296A] focus:border-[#03296A]"
+                        />
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={dep.filing_with_us}
+                            onChange={e => setForm(f => ({ ...f, dependents: f.dependents.map((d, idx) => idx === i ? { ...d, filing_with_us: e.target.checked } : d) }))}
+                            className="h-4 w-4 rounded border-gray-300 accent-[#03296A]"
+                          />
+                          <span className="text-xs text-gray-600">Files a tax return with HispanUSA</span>
+                        </label>
+                      </div>
+                    ))}
+                    {form.dependents.length < 10 && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, dependents: [...f.dependents, { name: '', dob: '', relationship: '', filing_with_us: false }] }))}
+                        className="text-sm font-medium text-[#03296A] hover:text-[#244B75] underline"
+                      >
+                        + Add dependent
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

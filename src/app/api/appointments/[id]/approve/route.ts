@@ -54,6 +54,7 @@ export async function POST(
     language:             appt.language as 'en' | 'es',
     auto_send_checklist:  appt.auto_send_checklist as boolean,
     checklist_sent:       appt.checklist_sent as boolean,
+    filing_status:        (appt.filing_status ?? null) as MessagingAppt['filing_status'],
   };
 
   // Send messages based on auto_send_checklist setting

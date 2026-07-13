@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Phone, Mail, User, Clock, Tag, MessageSquare, Globe, ChevronDown, Loader2, AlertCircle, Building2 } from 'lucide-react';
-import { formatTime, formatPhone, formatDate } from '@/lib/utils';
-import { includesCorporate } from '@/lib/availability-utils';
-import type { CalendarAppt, CalendarPreparer, CalendarApptDetail, CalendarMessage } from './calendarTypes';
+import { formatTime, formatPhone, formatDate, formatDateShort } from '@/lib/utils';
+import { includesCorporate, includesPersonal } from '@/lib/availability-utils';
+import type { CalendarAppt, CalendarPreparer, CalendarApptDetail, CalendarMessage, CalendarPerson } from './calendarTypes';
 import { preparerDotColor } from './calendarColors';
 import RescheduleModal from '@/components/appointments/RescheduleModal';
 
@@ -28,6 +28,12 @@ const SUBTYPE_LABELS: Record<string, string> = {
   offer_in_compromise_case:       'Offer in Compromise Case',
   general_consulting:             'General Consulting',
   other:                          'Other',
+};
+
+const FILING_STATUS_LABELS: Record<string, string> = {
+  single:                    'Single',
+  married_filing_jointly:    'Married Filing Jointly',
+  married_filing_separately: 'Married Filing Separately',
 };
 
 const STATUS_OPTIONS = [
@@ -74,8 +80,9 @@ export default function AppointmentSidePanel({
   const [notes,      setNotes     ] = useState(appt.notes ?? '');
   const [language,   setLanguage  ] = useState(appt.language);
 
-  // Messages (fetched separately)
+  // Messages + household people (fetched separately via the [id] detail GET)
   const [messages,      setMessages     ] = useState<CalendarMessage[]>([]);
+  const [people,        setPeople       ] = useState<CalendarPerson[]>([]);
   const [messagesLoading, setMsgLoading ] = useState(true);
   const [messagesError,   setMsgError   ] = useState(false);
 
@@ -94,7 +101,10 @@ export default function AppointmentSidePanel({
 
     fetch(`/api/appointments/${appt.id}`)
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then((detail: CalendarApptDetail) => setMessages(detail.messages ?? []))
+      .then((detail: CalendarApptDetail) => {
+        setMessages(detail.messages ?? []);
+        setPeople(detail.people ?? []);
+      })
       .catch(() => setMsgError(true))
       .finally(() => setMsgLoading(false));
   }, [appt.id]);
@@ -210,6 +220,46 @@ export default function AppointmentSidePanel({
                 : <span className="text-gray-400 italic">Company: — not provided</span>}
             </div>
           )}
+
+          {includesPersonal(appt.appointment_type) && (() => {
+            const spouse = people.find(p => p.role === 'spouse');
+            const dependents = people.filter(p => p.role === 'dependent');
+            const married = appt.filing_status === 'married_filing_jointly'
+              || appt.filing_status === 'married_filing_separately';
+            return (
+              <div className="space-y-1.5 text-sm">
+                <div>
+                  {appt.filing_status
+                    ? <span className="text-gray-700">Filing: {FILING_STATUS_LABELS[appt.filing_status] ?? appt.filing_status}</span>
+                    : <span className="text-gray-400 italic">Filing status: — not provided</span>}
+                </div>
+                {married && (
+                  <div>
+                    {spouse
+                      ? <span className="text-gray-700">Spouse: {spouse.name} <span className="text-gray-400">(DOB {formatDateShort(spouse.dob)})</span></span>
+                      : <span className="text-gray-400 italic">Spouse: — not provided</span>}
+                  </div>
+                )}
+                {dependents.length > 0 ? (
+                  <div>
+                    <span className="text-gray-700">Dependents:</span>
+                    <ul className="mt-0.5 space-y-0.5 pl-4 list-disc">
+                      {dependents.map(d => (
+                        <li key={d.id} className="text-gray-700">
+                          {d.name} <span className="text-gray-400">(DOB {formatDateShort(d.dob)}{d.relationship ? `, ${d.relationship}` : ''})</span>
+                          {d.filing_with_us && (
+                            <span className="ml-1 text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-full">Files with us</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div><span className="text-gray-400 italic">Dependents: — none recorded</span></div>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -418,6 +468,7 @@ export default function AppointmentSidePanel({
               if (res.ok) {
                 const detail: CalendarApptDetail = await res.json();
                 setMessages(detail.messages ?? []);
+                setPeople(detail.people ?? []);
                 onSave(detail);
               }
             } catch {
