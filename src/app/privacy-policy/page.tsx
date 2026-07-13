@@ -199,9 +199,9 @@ function EnglishContent() {
         also opt out of those channels.
       </p>
       <p className="mb-4">
-        <strong>How to get help:</strong> Reply <strong>HELP</strong> to any text message to receive
-        contact information. You can also call our office at 954-934-0194 or email
-        info@hispanusa.com.
+        <strong>How to get help:</strong> Reply <strong>HELP</strong> to any text message for
+        assistance with messaging. For questions about your appointment or our services, call our
+        office at 954-934-0194 or email info@hispanusa.com.
       </p>
       <p className="mb-4">
         <strong>SMS information is not shared:</strong> Your mobile phone number and the fact that you
@@ -609,8 +609,9 @@ function SpanishContent() {
       </p>
       <p className="mb-4">
         <strong>Cómo obtener ayuda:</strong> Responda <strong>HELP</strong> (AYUDA) a cualquier
-        mensaje de texto para recibir información de contacto. También puede llamar a nuestra oficina
-        al 954-934-0194 o enviarnos un correo electrónico a info@hispanusa.com.
+        mensaje de texto para obtener asistencia con los mensajes. Para preguntas sobre su cita o
+        nuestros servicios, llame a nuestra oficina al 954-934-0194 o envíenos un correo electrónico
+        a info@hispanusa.com.
       </p>
       <p className="mb-4">
         <strong>La información SMS no se comparte:</strong> Su número de teléfono móvil y el hecho de

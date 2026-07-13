@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import LegalPageLayout from '@/components/legal/LegalPageLayout';
 
 export const metadata: Metadata = {
@@ -6,22 +7,6 @@ export const metadata: Metadata = {
   description:
     'How HispanUSA Accounting & Tax Services collects consent for SMS text messages: the opt-in process, message types, frequency, opt-out, and help.',
 };
-
-// Placeholder for the consent-step screenshots. Drop-in targets (PNGs saved
-// manually to public/ — binary files are added by hand, not generated):
-//   public/sms-consent-step-en.png  (English consent step at book.hispanusa.com/book)
-//   public/sms-consent-step-es.png  (Spanish consent step at book.hispanusa.com/book)
-// Once the files exist, replace each <ScreenshotSlot .../> with:
-//   <Image src="/sms-consent-step-en.png" alt="Booking form consent step (English)"
-//          width={640} height={480} className="my-6 rounded-xl border border-gray-200 w-full h-auto" />
-// (import Image from 'next/image' at that point)
-function ScreenshotSlot({ label }: { label: string }) {
-  return (
-    <div className="my-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-400">
-      {label}
-    </div>
-  );
-}
 
 function ConsentQuote({ checkbox, body }: { checkbox: string; body: React.ReactNode }) {
   return (
@@ -63,7 +48,13 @@ function EnglishContent() {
           </>
         }
       />
-      <ScreenshotSlot label="Screenshot pending — booking-flow consent step (English)" />
+      <Image
+        src="/sms-consent-step-en.png"
+        alt="Booking-flow contact step showing the SMS consent checkbox and full disclosure text (English)"
+        width={2557}
+        height={1280}
+        className="my-6 w-full h-auto rounded-xl border border-gray-200"
+      />
       <p className="mb-4">
         When you check the box, we record your consent with a timestamp, IP address, and the version
         of the disclosure text you agreed to.
@@ -153,7 +144,13 @@ function SpanishContent() {
           </>
         }
       />
-      <ScreenshotSlot label="Captura pendiente — paso de consentimiento del proceso de reserva (español)" />
+      <Image
+        src="/sms-consent-step-es.png"
+        alt="Paso de contacto del proceso de reserva mostrando la casilla de consentimiento SMS y el texto completo de divulgación (español)"
+        width={2555}
+        height={1281}
+        className="my-6 w-full h-auto rounded-xl border border-gray-200"
+      />
       <p className="mb-4">
         Cuando usted marca la casilla, registramos su consentimiento con fecha y hora, dirección IP y
         la versión del texto de divulgación que aceptó.
