@@ -135,7 +135,7 @@ interface MessageRow {
   message_type: string;
   status: string;
   error_message: string | null;
-  created_at: string;
+  sent_at: string; // messages has no created_at — sent_at is its DEFAULT NOW() timestamp
 }
 
 export async function GET(request: NextRequest) {
@@ -203,8 +203,8 @@ export async function GET(request: NextRequest) {
         rows<MessageRow>(
           supabase
             .from('messages')
-            .select('appointment_id, channel, message_type, status, error_message, created_at')
-            .gte('created_at', sevenDaysAgoIso)
+            .select('appointment_id, channel, message_type, status, error_message, sent_at')
+            .gte('sent_at', sevenDaysAgoIso)
         )
       ),
     ]);
@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
       failed_details_top5: failed.slice(0, 5).map((m) => ({
         channel: m.channel,
         message_type: m.message_type,
-        created_at: m.created_at,
+        sent_at: m.sent_at,
         error_message: m.error_message,
       })),
     };
