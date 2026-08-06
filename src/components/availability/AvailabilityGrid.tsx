@@ -1,10 +1,17 @@
 'use client';
 
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import type { Preparer, SlotWithMeta } from '@/types/scheduling';
 import { formatTimeDisplay, slotKey, addThirtyMinutes } from '@/lib/availability-utils';
-import { isBookableEastern, easternDateString } from '@/lib/utils';
+import { isBookableEastern, easternDateString, hasSlotStartedEastern } from '@/lib/utils';
+
+// How often to recompute expiry. Expiry is derived at render time from the
+// current instant, but React does not re-render as the clock moves, so a 10:00
+// slot would keep rendering as Open past 10:00 until some unrelated state
+// change forced a render. This interval makes expiry visible as time passes.
+// 30s is ample granularity for 30-minute slots. Nothing is stored or written.
+const EXPIRY_TICK_MS = 30_000;
 
 // -----------------------------------------------------------------------
 // Lock icon (inline — no external icon library)
@@ -74,6 +81,15 @@ export default function AvailabilityGrid({
   loadingCells,
   onCellClick,
 }: AvailabilityGridProps) {
+  // Re-render every EXPIRY_TICK_MS so slots visibly expire as their start time
+  // passes, without a reload. The counter value is intentionally unused: the
+  // state update alone is what triggers recomputation of the derived expiry.
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(t => t + 1), EXPIRY_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
   // Eastern "today" — Applied Learning #21: never derive today from local/UTC
   // now (evening drift); easternDateString() is the canonical rule.
   const todayStr = easternDateString();
@@ -209,7 +225,8 @@ export default function AvailabilityGrid({
                     slot={slot}
                     isLoading={isLoading}
                     isToday={isToday}
-                    isPast={!isBookableEastern(dateStr, startTime)}
+                    cannotOpen={!isBookableEastern(dateStr, startTime)}
+                    isExpired={hasSlotStartedEastern(dateStr, startTime)}
                     isHourBoundary={isHourBoundary}
                     preparerColor="#03296A"
                     run={slot && !slot.is_booked ? runInfo.get(key) ?? null : null}
@@ -225,15 +242,25 @@ export default function AvailabilityGrid({
   );
 }
 
+// Diagonal hatch for the expired state. Nothing else in the grid is hatched, so
+// it reads as a deliberate "this is switched off" treatment rather than as a
+// rendering glitch, which flat opacity alone does not achieve.
+const EXPIRED_HATCH =
+  'repeating-linear-gradient(45deg, #E2E8F0 0px, #E2E8F0 6px, #CBD5E1 6px, #CBD5E1 12px)';
+
 // -----------------------------------------------------------------------
 // Individual cell component
-// Three visual states: empty | open | booked
+// Four visual states: empty | open | expired | booked
 // -----------------------------------------------------------------------
 interface SlotCellProps {
   slot: SlotWithMeta | null;
   isLoading: boolean;
   isToday: boolean;
-  isPast: boolean;          // slot start already passed (15-min buffer, Eastern)
+  // 15-min booking lead: an EMPTY cell this close to its start can no longer be
+  // opened, mirroring the API's 400 from the write-time guard.
+  cannotOpen: boolean;
+  // Zero lead: this slot's own start time has passed. Drives the expired state.
+  isExpired: boolean;
   isHourBoundary: boolean;
   preparerColor: string;    // preparer's hex color
   run: RunInfo | null;      // run membership for open slots (visual merge)
@@ -244,7 +271,8 @@ function SlotCell({
   slot,
   isLoading,
   isToday,
-  isPast,
+  cannotOpen,
+  isExpired,
   isHourBoundary,
   preparerColor,
   run,
@@ -272,6 +300,41 @@ function SlotCell({
             {slot.client_name.split(' ')[0]}
           </span>
         )}
+      </div>
+    );
+  }
+
+  // ── EXPIRED (open slot whose start time has passed): greyed, hatched and
+  // LOCKED. Rendered as a div, not a button, so it cannot be selected, edited
+  // or booked. Bulk cleanup still works: Clear Day / Clear Week delete unbooked
+  // slots regardless of date. Booked slots fall through to the booked branch
+  // below and keep their existing treatment, since a past booked slot is a
+  // historical record rather than a problem.
+  if (state === 'open' && isExpired) {
+    const pos = run?.pos ?? 'single';
+    const showLabel = pos === 'start' || pos === 'single';
+    const rounding = `${pos === 'start' || pos === 'single' ? 'rounded-t-md' : ''} ${
+      pos === 'end' || pos === 'single' ? 'rounded-b-md' : ''
+    }`;
+
+    return (
+      <div
+        aria-disabled="true"
+        className={`
+          relative h-10 w-full border-r border-gray-100 last:border-r-0 ${rounding}
+          overflow-hidden cursor-not-allowed select-none
+        `}
+        style={{ background: EXPIRED_HATCH }}
+        title={run ? `${run.label} · Expired, this time has passed` : 'Expired, this time has passed'}
+      >
+        <span className="flex items-center h-full gap-1 px-1.5">
+          <LockIcon className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+          {showLabel && (
+            <span className="text-[11px] font-semibold leading-tight truncate text-slate-600">
+              <span className="line-through">{run?.label}</span> · Expired
+            </span>
+          )}
+        </span>
       </div>
     );
   }
@@ -317,10 +380,12 @@ function SlotCell({
     );
   }
 
-  // ── EMPTY + PAST: dimmed, not clickable — availability can't be created
-  // for a time that already passed (write-time guard, UI mirror of the API
-  // 400). Past OPEN slots above stay clickable: closing them is cleanup.
-  if (isPast) {
+  // ── EMPTY + too late to open: dimmed, not clickable. Availability can't be
+  // created for a time that already passed. This uses the 15-minute BOOKING
+  // lead (cannotOpen), not the zero-lead expiry rule, so it stays an exact
+  // mirror of the API's 400 from the write-time guard in POST /api/availability.
+  // Loosening it to zero lead would offer a click the server rejects.
+  if (cannotOpen) {
     return (
       <div
         className={`

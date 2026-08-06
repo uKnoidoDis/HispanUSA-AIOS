@@ -96,6 +96,36 @@ export function isBookableEastern(
   return normalized >= easternTimeString(cutoff);
 }
 
+// Has this slot's own start time already passed in Eastern? The STAFF-VIEW
+// expiry rule, deliberately distinct from bookability:
+//
+//   isBookableEastern(d, t)      -> can a client still book it? 15-min lead.
+//   hasSlotStartedEastern(d, t)  -> has its start time passed?  ZERO lead.
+//
+// A 10:00 slot stops being bookable at 09:45 but is not expired until 10:00.
+// Both are correct answers to different questions, so they must not share a
+// predicate. Implemented by reusing isBookableEastern with leadMinutes = 0 so
+// there is exactly one Eastern comparison in the codebase, not two.
+//
+// Derived, read-time only. Never persisted: there is no expiry column and
+// nothing writes on a schedule.
+export function hasSlotStartedEastern(date: string, startTime: string): boolean {
+  return !isBookableEastern(date, startTime, 0);
+}
+
+// Whole days from one YYYY-MM-DD to another, both parsed as UTC midnight so the
+// arithmetic is pure calendar math with no host-timezone influence.
+//
+// Use this instead of daysUntil() for anything Eastern-anchored: daysUntil()
+// builds "today" from local new Date()+setHours, which drifts a day in the
+// Eastern evening (Applied Learning #21). Pass easternDateString() as `from`.
+export function daysBetweenDateStrings(from: string, to: string): number {
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.round((b - a) / 86_400_000);
+}
+
 export function addDaysToDate(dateStr: string, days: number): string {
   const date = parseISO(dateStr);
   date.setDate(date.getDate() + days);

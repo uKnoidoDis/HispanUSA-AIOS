@@ -14,6 +14,16 @@ export function isTaxSeason(date: Date = new Date()): boolean {
 }
 
 // -----------------------------------------------------------------------
+// Coverage runway
+// -----------------------------------------------------------------------
+// Warn staff once the LAST open future slot across all active preparers is
+// fewer than this many days away. An empty forward calendar is not a cosmetic
+// problem: it contributed to three consecutive A2P 10DLC carrier rejections,
+// because reviewers could not click through the booking flow. Single tunable
+// constant so the threshold is never a magic number at a call site.
+export const COVERAGE_WARNING_DAYS = 7;
+
+// -----------------------------------------------------------------------
 // Week helpers — always Mon-based
 // -----------------------------------------------------------------------
 export function getWeekStart(date: Date): Date {
