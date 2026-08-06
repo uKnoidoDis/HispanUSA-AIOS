@@ -72,14 +72,14 @@ export async function GET() {
   if (furthestFuture) lastOpenDate = furthestFuture;
   if (liveToday.length > 0 && (!lastOpenDate || today > lastOpenDate)) lastOpenDate = today;
 
-  // Count is only used to distinguish "some coverage" from "none", so counting
-  // today's live slots plus the existence of a future date is sufficient. A
-  // full forward count would scan every open row for no extra signal.
-  const openSlotCount = liveToday.length + (furthestFuture ? 1 : 0);
-
+  // last_open_date === null is the sole "no coverage" signal. live_slots_today
+  // is reported because it is a real, exact number that costs nothing extra
+  // (query 1 already returned the rows) and is useful when reading the response
+  // by hand. Deliberately NOT a total forward count: that would mean scanning
+  // every open row to tell the banner something last_open_date already says.
   return NextResponse.json({
     last_open_date: lastOpenDate,
-    open_slot_count: openSlotCount,
+    live_slots_today: liveToday.length,
     today,
   });
 }

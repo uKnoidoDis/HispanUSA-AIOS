@@ -82,9 +82,9 @@ export default function AvailabilityGrid({
   onCellClick,
 }: AvailabilityGridProps) {
   // Re-render every EXPIRY_TICK_MS so slots visibly expire as their start time
-  // passes, without a reload. The counter value is intentionally unused: the
-  // state update alone is what triggers recomputation of the derived expiry.
-  const [, setNowTick] = useState(0);
+  // passes, without a reload. The counter feeds runInfo's dep array so the
+  // expired/live split point advances with the clock as well as the cell fills.
+  const [nowTick, setNowTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setNowTick(t => t + 1), EXPIRY_TICK_MS);
     return () => clearInterval(id);
@@ -112,12 +112,21 @@ export default function AvailabilityGrid({
   }, []);
 
   // ── Compute contiguous open-slot runs per day (visual merge) ──────────
+  // A run also BREAKS at the expiry boundary, not just at booked/empty cells.
+  // Without that split, a 9:00-17:00 block viewed at 10:30 would put its only
+  // label on the 9:00 cell (now expired) reading "9:00 AM to 5:00 PM, Expired",
+  // which is wrong for the live remainder, and every cell from 10:30 on would
+  // be a 'mid' position and therefore render with no label at all. Splitting
+  // gives two correctly labelled blocks: expired 9:00-10:30, open 10:30-17:00.
+  //
+  // Depends on nowTick so the split point advances with the clock.
   const runInfo = useMemo(() => {
     const info = new Map<string, RunInfo>();
 
     for (const day of weekDays) {
       const dateStr = format(day, 'yyyy-MM-dd');
       let runStart = -1; // index into timeSlots where the current run began
+      let runExpired = false; // expiry kind of the run currently being built
 
       const flush = (endIdx: number) => {
         if (runStart < 0) return;
@@ -135,8 +144,16 @@ export default function AvailabilityGrid({
       timeSlots.forEach((t, idx) => {
         const slot = slots.get(slotKey(dateStr, t));
         const isOpen = !!slot && !slot.is_booked;
+        const expired = isOpen && hasSlotStartedEastern(dateStr, t);
         if (isOpen) {
-          if (runStart < 0) runStart = idx;
+          if (runStart < 0) {
+            runStart = idx;
+            runExpired = expired;
+          } else if (expired !== runExpired) {
+            flush(idx - 1); // expiry boundary: close this run, start a new one
+            runStart = idx;
+            runExpired = expired;
+          }
         } else {
           flush(idx - 1);
         }
@@ -145,7 +162,7 @@ export default function AvailabilityGrid({
     }
 
     return info;
-  }, [weekDays, timeSlots, slots]);
+  }, [weekDays, timeSlots, slots, nowTick]);
 
   return (
     <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">

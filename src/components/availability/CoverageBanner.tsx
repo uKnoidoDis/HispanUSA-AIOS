@@ -6,8 +6,12 @@ import { COVERAGE_WARNING_DAYS } from '@/lib/availability-utils';
 import { daysBetweenDateStrings } from '@/lib/utils';
 
 export interface CoverageData {
+  /** Furthest-out date with an open, unbooked, not-yet-started slot. Null means
+   *  there is no open future availability at all. This is the sole coverage signal. */
   last_open_date: string | null;
-  open_slot_count: number;
+  /** Exact count of today's slots that are open and have not started yet. */
+  live_slots_today: number;
+  /** Eastern calendar date the server computed against. Runway is measured from this. */
   today: string;
 }
 
