@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { sendEmail } from '@/lib/resend';
 import { todayString, addDaysToDate } from '@/lib/utils';
+import { resolveHealthContext } from '@/lib/health-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Runs weekly, Monday 11:00 UTC (~7 AM Eastern) via Vercel Cron.
 // DHS System-Health agent: read-only digest of the production system, emailed
 // to Troy. Flags, never fixes. Heartbeat semantics: the email sends EVERY week,
-// including ALL CLEAR — a missing Monday email is itself the alarm.
+// including ALL CLEAR, a missing Monday email is itself the alarm.
 //
 // Guardrails (see context/agents/system-health-agent.md):
 //  - Read-only DB access, mechanically enforced: this route's Supabase client
@@ -21,7 +22,7 @@ export const dynamic = 'force-dynamic';
 //  - Failure surfaces: a failed query becomes {error} in the metrics JSON;
 //    an Anthropic failure falls back to a plain-text email with raw metrics;
 //    a Resend failure returns 500 (visible in Vercel's cron dashboard).
-//  - LLM output is advisory text only — nothing downstream parses it.
+//  - LLM output is advisory text only, nothing downstream parses it.
 //
 // Security: requires CRON_SECRET via Authorization header (Bearer) or
 // Vercel's x-vercel-cron-secret header. Returns 401 otherwise.
@@ -30,20 +31,46 @@ const DIGEST_RECIPIENT = 'montalvotroy@gmail.com';
 const DIGEST_FROM = 'DHS System Health <appointments@hispanusa.com>';
 const DIGEST_MODEL = 'claude-sonnet-4-6';
 
-const DIGEST_SYSTEM_PROMPT = `You are the DHS System Health agent — a weekly read-only monitor for the HispanUSA scheduling system (a Next.js + Supabase appointment-booking app run by Dark Horse Systems). You receive raw weekly metrics as JSON. Your ONLY job is to write a short plain-English health digest for Troy, a non-technical founder. You take no actions. Your text is advisory only — nothing downstream parses or acts on it, so write for a human reader, not a machine.
+const DIGEST_SYSTEM_PROMPT = `You are the DHS System Health agent, a weekly read-only monitor for the HispanUSA scheduling system (a Next.js + Supabase appointment-booking app run by Dark Horse Systems). You receive raw weekly metrics as JSON. Your ONLY job is to write a short plain-English health digest for Troy, a non-technical founder. You take no actions. Your text is advisory only, nothing downstream parses or acts on it, so write for a human reader, not a machine.
 
-Rules:
+THE INTERPRETATION BLOCK IS AUTHORITATIVE
+The metrics JSON contains an "interpretation" object built by the engine from a declared config file. It already decided what counts as expected this week. You do not re-decide it.
+- Any finding id listed in interpretation.suppressed_findings must NOT appear as an attention item. If that condition is true in the data, report it in the numbers section as expected, with a short clause saying why.
+- For every entry in interpretation.expired_suppressions you MUST raise an attention item: a previously declared exception has expired and the underlying state now needs a decision.
+- If interpretation.stage_declaration_stale is true, raise an attention item saying the lifecycle stage declaration is past its review date.
+- Work every string in interpretation.notes into the digest.
+
+WHAT YOU CAN AND CANNOT SEE
+You see database query results only. You cannot see deployments, database connectivity, environment variables, Vercel, Twilio, or email delivery. Do not speculate about causes you cannot see. A zero is a zero, not evidence of an outage or a broken database. Never invent numbers, use only what is in the JSON.
+
+SEVERITY IS ABOUT ACTIONABILITY, NOT NOTICEABILITY
+Something is an attention item ONLY if a person needs to do something about it.
+- [HIGH] someone must act today. Data integrity is broken, or clients are affected right now.
+- [MEDIUM] someone must act this week. Real degradation that causes harm if ignored.
+- [LOW] worth knowing. No action needed this week. Act only if it persists or recurs.
+If nobody needs to do anything, it is not an attention item. Put it in the numbers section. An unusual number that requires no action is a number, not a finding.
+
+FIXED FLAGGING RULES
+- Any orphan-audit count above 0: [HIGH].
+- Any pending booking request older than 48 hours: [HIGH].
+- Failed message sends: [MEDIUM], or [HIGH] if more than 3.
+- Zero open availability slots across ALL preparers in the next 14 days: [HIGH].
+- Some but not all preparers with zero open slots: [LOW], unless suppressed.
+- Any metric carrying an "error" field, or missing: [MEDIUM], a health check itself failed.
+- An expired suppression: [MEDIUM]. A stale stage declaration: [LOW].
+Apply these unless interpretation.suppressed_findings covers the case.
+
+OUTPUT FORMAT
 - First line: exactly "ALL CLEAR" if nothing needs attention, otherwise "N ITEMS NEED ATTENTION" (with the real count).
-- If there are flagged items: a numbered list, each starting with a severity tag [HIGH], [MEDIUM], or [LOW], then a one-line plain-English reason — what it is and why it matters. No jargon, no table names.
-- Then a short section titled "This week's numbers" summarizing the healthy metrics in a few plain lines.
-- Flagging rules: any orphan-audit count above 0 is [HIGH]. Any failed email sends: [MEDIUM], or [HIGH] if more than 3. Any pending booking request older than 48 hours: [HIGH]. Zero open availability slots across the next 14 days: [HIGH]. A single preparer with zero open slots while others have many: [LOW]. Anything else you judge anomalous: flag it with your reasoning and a severity.
-- Never invent numbers — use only what is in the JSON. If a metric carries an "error" field or is missing, flag that as [MEDIUM] ("a health check itself failed").
-- Keep the whole digest under 250 words. Plain text only — it goes into a simple email.`;
+- Second line: exactly "Stage: " followed by interpretation.stage.
+- If there are flagged items: a numbered list, each starting with [HIGH], [MEDIUM] or [LOW], then a one-line plain-English reason. No jargon, no table names, no finding ids.
+- Then a short section titled "This week's numbers" covering the healthy metrics and any expected-state conditions in a few plain lines. When a declared exception is in force, say when it expires.
+- Keep the whole digest under 250 words. Plain text only, it goes into a simple email.`;
 
 // ── Read-only Supabase client ────────────────────────────────────────────────
 // Service-role key (required to bypass RLS) but the fetch wrapper throws on any
 // HTTP method other than GET/HEAD, so .insert()/.update()/.delete()/.rpc()
-// physically cannot leave this client — even a future code edit fails at
+// physically cannot leave this client, even a future code edit fails at
 // runtime. Also sets cache:'no-store' per Applied Learning #41 (Next.js Data
 // Cache silently caches the supabase-js PostgREST fetch otherwise).
 function createReadOnlyClient(): SupabaseClient {
@@ -135,7 +162,7 @@ interface MessageRow {
   message_type: string;
   status: string;
   error_message: string | null;
-  sent_at: string; // messages has no created_at — sent_at is its DEFAULT NOW() timestamp
+  sent_at: string; // messages has no created_at, sent_at is its DEFAULT NOW() timestamp
 }
 
 export async function GET(request: NextRequest) {
@@ -209,11 +236,11 @@ export async function GET(request: NextRequest) {
       ),
     ]);
 
-  // ── Signals 1–3: orphan audit ─────────────────────────────────────────────
+  // ── Signals 1-3: orphan audit ─────────────────────────────────────────────
   // Plain-SELECT reimplementation of scripts/orphan-audit.sql, logic mirrored
   // line-for-line (supabase-js can't run raw SQL without an RPC, and RPC is a
   // POST the read-only guard forbids). scripts/orphan-audit.sql remains the
-  // canonical manual-check artifact — keep the two in sync.
+  // canonical manual-check artifact, keep the two in sync.
   let orphanAudit;
   if (isSignalError(appts) || isSignalError(bookedSlots) || isSignalError(people)) {
     const failed = [
@@ -348,7 +375,7 @@ export async function GET(request: NextRequest) {
     };
   }
 
-  // ── Signals 8–11: workload, cancellations, growth, consent ────────────────
+  // ── Signals 8-11: workload, cancellations, growth, consent ────────────────
   let upcomingConfirmed;
   let cancellations;
   let totalAppointments;
@@ -387,9 +414,26 @@ export async function GET(request: NextRequest) {
     };
   }
 
+  // ── Interpretation layer ──────────────────────────────────────────────────
+  // The mechanical checks above decide WHAT IS TRUE. This decides WHAT COUNTS as
+  // needing attention, by consulting src/lib/health-context.ts. Kept separate on
+  // purpose: no state-specific knowledge lives in this engine, so declaring a new
+  // expected state is a config edit, not a code edit.
+  //
+  // Observed lifetime appointments are handed to the resolver so data can
+  // override a stale declaration: activity on record beats a 'pre-launch' claim.
+  // A failed signal passes null, which cannot override anything (the failure
+  // itself surfaces separately as a health check that could not run).
+  const healthContext = resolveHealthContext(environment, today, {
+    lifetimeAppointments: isSignalError(totalAppointments)
+      ? null
+      : totalAppointments.lifetime,
+  });
+
   const metrics = {
     week_ending: today,
     environment,
+    interpretation: healthContext,
     orphan_audit: orphanAudit,
     appointments_created_past_7_days: recentCreated,
     pending_queue: pendingQueue,
@@ -437,17 +481,23 @@ export async function GET(request: NextRequest) {
   // ── Email (Resend failure → 500, visible in Vercel cron dashboard) ────────
   const firstLine = digest ? digest.split('\n')[0].trim() : 'HEALTH CHECK DEGRADED';
   const stagingPrefix = isStaging ? '[STAGING] ' : '';
-  const subject = `${stagingPrefix}[DHS System Health] ${firstLine} — ${today}`;
+  const subject = `${stagingPrefix}[DHS System Health] ${firstLine}, ${today}`;
   const bodyText = digest
     ? digest
     : `The weekly digest could not be generated (Anthropic API error: ${llmError}).\n` +
-      `Raw metrics below — a human read is needed this week.\n\n${metricsJson}`;
+      `Raw metrics below, a human read is needed this week.\n\n${metricsJson}`;
 
   try {
     await sendEmail({
       to: DIGEST_RECIPIENT,
       subject,
-      html: buildDigestHtml(bodyText, today, environment),
+      html: buildDigestHtml(
+        bodyText,
+        today,
+        environment,
+        healthContext.stage,
+        healthContext.stage_review_by
+      ),
       from: DIGEST_FROM,
       replyTo: DIGEST_RECIPIENT,
     });
@@ -485,8 +535,15 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function buildDigestHtml(bodyText: string, date: string, environment: string): string {
-  const envLabel = environment === 'staging' ? ' · STAGING' : '';
+function buildDigestHtml(
+  bodyText: string,
+  date: string,
+  environment: string,
+  stage: string,
+  stageReviewBy: string
+): string {
+  const envLabel = environment === 'staging' ? ' &middot; STAGING' : '';
+  const stageLabel = stage.toUpperCase();
   return `<!DOCTYPE html>
 <html>
   <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
@@ -498,11 +555,15 @@ function buildDigestHtml(bodyText: string, date: string, environment: string): s
               <td style="background-color:#18181b;padding:20px 28px;">
                 <span style="color:#fafafa;font-size:15px;font-weight:bold;letter-spacing:2px;">DARK HORSE SYSTEMS</span>
                 <span style="color:#a1a1aa;font-size:13px;letter-spacing:1px;"> &middot; System Health${envLabel}</span>
+                <div style="margin-top:6px;">
+                  <span style="display:inline-block;padding:3px 10px;border:1px solid #3f3f46;border-radius:999px;color:#d4d4d8;font-size:11px;letter-spacing:1px;">STAGE: ${escapeHtml(stageLabel)}</span>
+                </div>
               </td>
             </tr>
             <tr>
               <td style="padding:24px 28px 8px 28px;">
                 <p style="margin:0;color:#71717a;font-size:12px;">Weekly digest &middot; week ending ${escapeHtml(date)}</p>
+                <p style="margin:6px 0 0 0;color:#a1a1aa;font-size:11px;">Findings are judged against the <strong style="color:#71717a;">${escapeHtml(stageLabel)}</strong> frame &middot; declaration due for review ${escapeHtml(stageReviewBy)}</p>
               </td>
             </tr>
             <tr>

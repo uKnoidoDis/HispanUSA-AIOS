@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { addDays, format } from 'date-fns';
 import AvailabilityGrid, { AvailabilityGridSkeleton } from '@/components/availability/AvailabilityGrid';
+import CoverageBanner, { type CoverageData } from '@/components/availability/CoverageBanner';
 import ToastContainer, { type ToastItem, type ToastType } from '@/components/ui/Toast';
 import {
   isTaxSeason,
@@ -15,7 +16,7 @@ import {
   isBusinessDay,
   getMonthBusinessDays,
 } from '@/lib/availability-utils';
-import { isBookableEastern } from '@/lib/utils';
+import { isBookableEastern, hasSlotStartedEastern } from '@/lib/utils';
 import type { Preparer, SlotWithMeta, SlotPreset } from '@/types/scheduling';
 
 // -----------------------------------------------------------------------
@@ -183,6 +184,10 @@ export default function AvailabilityPage() {
   // ── Toast state ───────────────────────────────────────────────────────
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // ── Coverage runway (global: all active preparers, not just the selected
+  // one). Drives the banner warning staff before availability runs out.
+  const [coverage, setCoverage] = useState<CoverageData | null>(null);
+
   // ── Open-scope: presets act on the displayed week or its calendar month ──
   const [openScope, setOpenScope] = useState<'week' | 'month'>('week');
 
@@ -229,6 +234,23 @@ export default function AvailabilityPage() {
       .then((data: Preparer[]) => setPreparers(data))
       .catch(() => showToast('Failed to load preparers', 'error'));
   }, [showToast]);
+
+  // ── Coverage: global, so it loads on mount regardless of preparer choice
+  // and refreshes after anything that changes slot counts. On failure the
+  // banner stays null and renders nothing rather than showing a wrong runway.
+  const fetchCoverage = useCallback(async () => {
+    try {
+      const res = await fetch('/api/availability/coverage');
+      if (!res.ok) throw new Error('Failed to fetch coverage');
+      setCoverage((await res.json()) as CoverageData);
+    } catch {
+      setCoverage(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCoverage();
+  }, [fetchCoverage]);
 
   // ── Fetch slots when preparer or week changes ─────────────────────────
   const fetchSlots = useCallback(async () => {
@@ -331,8 +353,15 @@ export default function AvailabilityPage() {
               })
             );
           }
+          fetchCoverage(); // runway may have extended
         }
       } else if (!slot.is_booked) {
+        // Expired slots are locked: the grid renders them as a non-interactive
+        // div, and this is the defence-in-depth guard so a stray programmatic
+        // call cannot close one either. Bulk cleanup is the sanctioned path
+        // (Clear Day / Clear Week delete unbooked slots regardless of date).
+        if (hasSlotStartedEastern(date, startTime)) return;
+
         // ── Close slot (optimistic) ───────────────────────────────────
         setSlots(prev => {
           const n = new Map(prev);
@@ -356,11 +385,13 @@ export default function AvailabilityPage() {
           setSlots(prev => new Map(prev).set(key, slot));
           const errData = await res.json().catch(() => ({}));
           showToast(errData.error ?? 'Failed to close slot', 'error');
+        } else {
+          fetchCoverage(); // runway may have shortened
         }
       }
       // Booked cells: do nothing (no-op, cell is disabled visually)
     },
-    [selectedPreparer, showToast]
+    [selectedPreparer, showToast, fetchCoverage]
   );
 
   // ── Bulk open slots — ONE request per open, week or month scope ────────
@@ -396,6 +427,7 @@ export default function AvailabilityPage() {
       const created = data.created ?? 0;
       const pastDays = data.skipped?.pastDays ?? [];
       const pastToday = data.skipped?.pastSlotsToday ?? 0;
+      fetchCoverage();
 
       // Toast says what was opened AND what was skipped, so a partial open
       // never reads as "fewer slots than expected" without explanation.
@@ -420,7 +452,7 @@ export default function AvailabilityPage() {
         showToast(`Opened ${created} slot${created === 1 ? '' : 's'}${scopeNote}${skippedNote}`, 'success');
       }
     },
-    [selectedPreparer, isBulkLoading, bulkDays, openScope, monthLabel, fetchSlots, showToast]
+    [selectedPreparer, isBulkLoading, bulkDays, openScope, monthLabel, fetchSlots, showToast, fetchCoverage]
   );
 
   // ── Copy week ─────────────────────────────────────────────────────────
@@ -443,6 +475,7 @@ export default function AvailabilityPage() {
     if (res.ok) {
       const data = await res.json();
       const count = data.created ?? 0;
+      fetchCoverage();
       showToast(
         count === 0
           ? 'Next week already has slots'
@@ -452,7 +485,7 @@ export default function AvailabilityPage() {
     } else {
       showToast('Failed to copy week', 'error');
     }
-  }, [selectedPreparer, isCopyLoading, currentWeekStart, showToast]);
+  }, [selectedPreparer, isCopyLoading, currentWeekStart, showToast, fetchCoverage]);
 
   // ── Clear day (delete all open slots for a single day) ────────────────
   const handleClearDay = useCallback(
@@ -497,6 +530,7 @@ export default function AvailabilityPage() {
       if (res.ok) {
         const data = await res.json();
         const count = data.deleted ?? 0;
+        fetchCoverage();
         showToast(
           count === 0
             ? 'No open slots to clear'
@@ -515,7 +549,7 @@ export default function AvailabilityPage() {
         showToast('Failed to clear day', 'error');
       }
     },
-    [selectedPreparer, isClearDayLoading, showToast]
+    [selectedPreparer, isClearDayLoading, showToast, fetchCoverage]
   );
 
   // ── Clear week (clear all open slots across the visible Mon–Sun week) ──
@@ -574,6 +608,7 @@ export default function AvailabilityPage() {
       });
       showToast('Failed to clear week', 'error');
     } else {
+      fetchCoverage();
       showToast(
         totalDeleted === 0
           ? 'No open slots to clear this week'
@@ -581,7 +616,7 @@ export default function AvailabilityPage() {
         totalDeleted === 0 ? 'info' : 'success'
       );
     }
-  }, [selectedPreparer, isClearWeekLoading, weekDays, weekLabel, showToast]);
+  }, [selectedPreparer, isClearWeekLoading, weekDays, weekLabel, showToast, fetchCoverage]);
 
   // -----------------------------------------------------------------------
   // Render
@@ -824,6 +859,16 @@ export default function AvailabilityPage() {
                 Open
               </span>
               <span className="flex items-center gap-1.5">
+                <span
+                  className="h-3 w-3 rounded-sm inline-block border border-slate-400"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(45deg, #E2E8F0 0px, #E2E8F0 3px, #CBD5E1 3px, #CBD5E1 6px)',
+                  }}
+                />
+                Expired
+              </span>
+              <span className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-sm inline-block bg-gray-300 border border-gray-400" />
                 Booked
               </span>
@@ -839,6 +884,11 @@ export default function AvailabilityPage() {
       {/* ── Main content ─────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 px-6 py-6 overflow-hidden flex flex-col">
         <div className="max-w-[1280px] mx-auto w-full flex-1 min-h-0 flex flex-col">
+          {/* Coverage runway warning. Global (all active preparers), so it
+              renders even before a preparer is picked, because an empty forward
+              calendar is an office-wide problem, not a per-preparer one. */}
+          <CoverageBanner data={coverage} />
+
           {/* No preparer selected — empty state */}
           {!selectedPreparer && (
             <div className="flex flex-col items-center py-24 text-center">
