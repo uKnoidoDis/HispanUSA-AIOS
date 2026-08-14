@@ -133,11 +133,15 @@ export const HEALTH_CONTEXT: Record<HealthEnvironment, EnvironmentHealthContext>
       {
         id: 'ruth-only-open-availability',
         finding: 'preparers-with-zero-open-slots',
+        // Re-declared 2026-08-14. The original reason (supporting the Twilio
+        // carrier review) is spent: the A2P campaign was APPROVED 2026-08-12.
+        // The state itself continues for a different reason, so it gets a fresh
+        // declaration and a fresh expiry rather than a silent extension.
         reason:
-          'Availability was deliberately concentrated on Ruth to support the Twilio carrier review of the booking flow. The other preparers having no open slots is intentional, not a scheduling gap.',
+          'HispanUSA staff are not yet onboarded to the system, so availability stays concentrated on Ruth until staff scheduling is confirmed with her. The other preparers having no open slots is intentional, not a scheduling gap.',
         declared_by: 'Troy',
-        declared_on: '2026-07-29',
-        expires_on: '2026-08-15',
+        declared_on: '2026-08-14',
+        expires_on: '2026-09-15',
       },
     ],
   },
