@@ -129,21 +129,22 @@ export const HEALTH_CONTEXT: Record<HealthEnvironment, EnvironmentHealthContext>
       'Production booking data was cleared on 2026-07-09 and the client booking portal has not been announced to clients yet. Zero appointment activity is the expected state, not a fault.',
     stage_declared_on: '2026-07-29',
     stage_review_by: '2026-08-31',
-    intentional_states: [
-      {
-        id: 'ruth-only-open-availability',
-        finding: 'preparers-with-zero-open-slots',
-        // Re-declared 2026-08-14. The original reason (supporting the Twilio
-        // carrier review) is spent: the A2P campaign was APPROVED 2026-08-12.
-        // The state itself continues for a different reason, so it gets a fresh
-        // declaration and a fresh expiry rather than a silent extension.
-        reason:
-          'HispanUSA staff are not yet onboarded to the system, so availability stays concentrated on Ruth until staff scheduling is confirmed with her. The other preparers having no open slots is intentional, not a scheduling gap.',
-        declared_by: 'Troy',
-        declared_on: '2026-08-14',
-        expires_on: '2026-09-15',
-      },
-    ],
+    // Empty since 2026-08-14. The ruth-only-open-availability entry was removed
+    // once Ruth confirmed Marycela, Oraise and Emely should carry the same
+    // availability pattern as her, and forward availability was opened for all
+    // four preparers. The state that entry described has ended, so
+    // preparer-coverage findings must fire normally again rather than stay
+    // suppressed until the old 2026-09-15 expiry.
+    //
+    // Removed rather than left to lapse on purpose: the A2P post-mortem made
+    // forward availability a COMPLIANCE dependency (an empty calendar is what
+    // caused four carrier rejections and six weeks of rework), so silencing
+    // coverage findings is now actively the wrong default.
+    //
+    // This does NOT mean Module 1 went live. Ruth's decision to launch Modules 1
+    // and 2 together stands, nothing has been announced to clients or staff, and
+    // stage deliberately remains 'pre-launch'.
+    intentional_states: [],
   },
   staging: {
     stage: 'pre-launch',
