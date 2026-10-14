@@ -64,7 +64,7 @@ export default async function ForcePasswordChangePage() {
             className="mx-auto mb-3"
             priority
           />
-          <p className="text-sm font-medium text-[#03296A] mt-1">AIOS Dashboard</p>
+          <p className="text-sm font-medium text-[#03296A] mt-1">Staff Dashboard</p>
         </div>
 
         <div className="bg-[#03296A] rounded-xl shadow-[0_8px_32px_rgba(3,41,106,0.25)] p-8">
