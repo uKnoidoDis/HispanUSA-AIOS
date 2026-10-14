@@ -10,8 +10,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'HispanUSA AIOS',
-  description: 'HispanUSA AI Operating System — Document Follow-Up Dashboard',
+  title: 'HispanUSA Accounting & Tax Services',
+  description: 'Book an appointment with HispanUSA Accounting & Tax Services.',
 };
 
 export default function RootLayout({

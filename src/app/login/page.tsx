@@ -131,7 +131,7 @@ export default function LoginPage() {
         {/* Logo — large and dominant */}
         <div className="text-center mb-8">
           <Image src="/hispanusa-logo.png" alt="HispanUSA" width={440} height={147} style={{ height: 'auto' }} className="mx-auto mb-3" priority />
-          <p className="text-sm font-medium text-[#03296A] mt-1">AIOS Dashboard</p>
+          <p className="text-sm font-medium text-[#03296A] mt-1">Staff Dashboard</p>
         </div>
 
         <Suspense fallback={

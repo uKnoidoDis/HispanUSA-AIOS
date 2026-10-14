@@ -249,7 +249,7 @@ export default function ResetPasswordPage() {
             className="mx-auto mb-3"
             priority
           />
-          <p className="text-sm font-medium text-[#03296A] mt-1">AIOS Dashboard</p>
+          <p className="text-sm font-medium text-[#03296A] mt-1">Staff Dashboard</p>
         </div>
 
         <Suspense
