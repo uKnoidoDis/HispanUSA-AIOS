@@ -59,7 +59,7 @@ export async function sendPasswordChangeConfirmation(params: { to: string }) {
                 <a href="tel:+19549340194" style="color:#03296A;font-weight:600;text-decoration:underline;">954-934-0194</a>.
               </p>
               <p style="margin:0;font-size:13px;line-height:1.5;color:#6B7280;font-family:'DM Sans',Arial,sans-serif;">
-                This is an automated security notification from the HispanUSA AIOS dashboard.
+                This is an automated security notification from the HispanUSA staff dashboard.
                 You don't need to reply.
               </p>
             </td>

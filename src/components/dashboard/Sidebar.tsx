@@ -160,7 +160,7 @@ export default function Sidebar() {
         <div className="bg-white rounded-md px-3 py-3 flex items-center justify-center">
           <Image src="/hispanusa-logo.png" alt="HispanUSA" width={200} height={67} style={{ width: '100%', height: 'auto' }} />
         </div>
-        <p className="text-[11px] text-[#C1282D] font-semibold mt-2 px-2">AIOS Dashboard</p>
+        <p className="text-[11px] text-[#C1282D] font-semibold mt-2 px-2">Staff Dashboard</p>
       </div>
 
       {/* User welcome */}
